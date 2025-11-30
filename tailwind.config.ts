@@ -8,17 +8,16 @@ const config: Config = {
     "./lib/**/*.{js,ts,jsx,tsx}",
   ],
   safelist: [
-    // Party colors - explicit list to ensure Tailwind includes them
-    'bg-red-600', 'text-white', 'border-red-700',
-    'bg-red-800', 'border-red-900',
-    'bg-blue-600', 'border-blue-700',
-    'bg-purple-600', 'border-purple-700',
-    'bg-green-600', 'border-green-700',
-    'bg-yellow-400', 'text-gray-900', 'border-yellow-500',
-    'bg-emerald-400', 'border-emerald-500',
-    'bg-rose-700', 'border-rose-800',
-    'bg-lime-500', 'border-lime-600',
-    'bg-gray-500', 'border-gray-600',
+    // Party colors - muted/pastel versions
+    'bg-red-100', 'text-red-800', 'border-red-200',
+    'bg-blue-100', 'text-blue-800', 'border-blue-200',
+    'bg-purple-100', 'text-purple-800', 'border-purple-200',
+    'bg-green-100', 'text-green-800', 'border-green-200',
+    'bg-yellow-100', 'text-yellow-800', 'border-yellow-200',
+    'bg-emerald-100', 'text-emerald-800', 'border-emerald-200',
+    'bg-rose-100', 'text-rose-800', 'border-rose-200',
+    'bg-lime-100', 'text-lime-800', 'border-lime-200',
+    'bg-gray-100', 'text-gray-800', 'border-gray-200',
     'bg-gray-200', 'text-gray-800', 'border-gray-300',
   ],
   theme: {
