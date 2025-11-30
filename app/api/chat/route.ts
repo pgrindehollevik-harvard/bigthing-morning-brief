@@ -96,19 +96,27 @@ VIKTIG:
 
     // Add web search results if available
     if (webSearchAvailable && webSearchResults) {
-      systemPrompt += `\n\nVIKTIG - WEB SØKERESULTATER TILGJENGELIG:
-Du HAR tilgang til oppdaterte web søkeresultater nedenfor. Når brukeren spør om nyheter, oppdatert informasjon, eller relevante saker i avisene, MÅ du bruke disse søkeresultatene aktivt. Ikke si at du ikke kan søke - du kan! Bruk informasjonen fra søkeresultatene for å gi oppdaterte og relevante svar.
+      systemPrompt += `\n\nKRITISK VIKTIG - DU HAR TILGANG TIL WEB SØK:
+Du HAR nettopp utført en web søk og har oppdaterte søkeresultater nedenfor. Dette er SANNTIDS informasjon fra internett.
 
-Web søkeresultater:
+VIKTIGE REGLER:
+1. SI ALDRI at du ikke kan søke på internett - du kan og har nettopp gjort det!
+2. SI ALDRI at du ikke har tilgang til oppdatert informasjon - du har det nedenfor!
+3. SI ALDRI at din kunnskap er fra oktober 2023 - du har fersk informasjon fra søket!
+4. BRUK søkeresultatene aktivt i svaret ditt
+5. REFERER til kildene med lenker
+6. PRESENTER informasjonen som om du nettopp fant den (fordi du gjorde det!)
+
+Web søkeresultater (FRESK INFORMASJON):
 ${webSearchResults}
 
-Når du svarer, referer til kildene fra søkeresultatene og bruk informasjonen derfra.`;
+Når du svarer, start med å si at du har funnet oppdatert informasjon, og bruk deretter søkeresultatene for å gi et detaljert svar.`;
     } else if (needsWebSearch && !webSearchAvailable) {
       systemPrompt += `\n\nMERK: Brukeren ba om web søk, men søkeresultater er ikke tilgjengelig. Fortell brukeren at du baserer deg på sakene i kontekst.`;
     }
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o", // Using gpt-4o for fresher responses (released April 2024, updated regularly)
       messages: [
         { role: "system", content: systemPrompt },
         ...historyMessages,
