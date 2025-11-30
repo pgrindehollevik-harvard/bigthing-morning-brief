@@ -9,6 +9,7 @@ A Next.js application that automatically fetches recent documents from the Norwe
 - 🎨 **Party Color Coding**: Visual tags with official party colors for representatives
 - 🏛️ **Source Attribution**: Shows department names for government proposals and individual representatives for member proposals
 - 🔗 **Direct Links**: Quick access to original documents and representative profiles
+- 💬 **AI Chat**: Interactive chat to analyze cases, find connections, and search for related news
 - 📱 **Responsive Design**: Clean, modern UI built with Tailwind CSS
 
 ## Tech Stack
@@ -42,6 +43,15 @@ A Next.js application that automatically fetches recent documents from the Norwe
    ```env
    OPENAI_API_KEY=your_openai_api_key_here
    STORTINGET_API_BASE=https://data.stortinget.no/eksport
+   
+   # Optional: Web search API (for chat feature)
+   # See SEARCH_SETUP.md for details
+   # TAVILY_API_KEY=your_tavily_key_here
+   # or
+   # SERPAPI_KEY=your_serpapi_key_here
+   # or
+   # GOOGLE_API_KEY=your_google_key_here
+   # GOOGLE_SEARCH_ENGINE_ID=your_search_engine_id_here
    ```
 
 4. **Run the development server**
