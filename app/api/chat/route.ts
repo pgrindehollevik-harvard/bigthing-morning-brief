@@ -53,6 +53,7 @@ URL: ${caseItem.url}
     
     let webSearchResults = "";
     let webSearchAvailable = false;
+    let searchDebugInfo = null;
     
     if (needsWebSearch) {
       // Extract search terms from message and cases
@@ -65,21 +66,52 @@ URL: ${caseItem.url}
           ? `${searchTerms} norge nyheter`
           : `${message} norge nyheter`;
         
-        console.log("Attempting web search with query:", searchQuery);
+        console.log("=".repeat(50));
+        console.log("🔍 WEB SEARCH TRIGGERED");
+        console.log("Query:", searchQuery);
+        console.log("TAVILY_API_KEY exists:", !!process.env.TAVILY_API_KEY);
+        console.log("TAVILY_API_KEY length:", process.env.TAVILY_API_KEY?.length || 0);
+        
+        const searchStartTime = Date.now();
         webSearchResults = await searchWeb(searchQuery, 5);
+        const searchDuration = Date.now() - searchStartTime;
+        
         webSearchAvailable = !!webSearchResults && !webSearchResults.includes("[Web search ikke konfigurert");
         
+        searchDebugInfo = {
+          triggered: true,
+          query: searchQuery,
+          duration: `${searchDuration}ms`,
+          hasResults: !!webSearchResults,
+          resultsLength: webSearchResults.length,
+          available: webSearchAvailable,
+          preview: webSearchResults.substring(0, 200) + (webSearchResults.length > 200 ? "..." : ""),
+        };
+        
+        console.log("Search completed in", searchDuration, "ms");
+        console.log("Results available:", webSearchAvailable);
+        console.log("Results length:", webSearchResults.length);
+        console.log("Results preview:", webSearchResults.substring(0, 300));
+        console.log("=".repeat(50));
+        
         if (webSearchResults && !webSearchAvailable) {
-          console.log("Web search returned configuration message");
+          console.log("⚠️ Web search returned configuration message");
         } else if (webSearchResults) {
-          console.log("Web search successful, results length:", webSearchResults.length);
+          console.log("✅ Web search successful!");
         } else {
-          console.log("Web search returned empty results");
+          console.log("❌ Web search returned empty results");
         }
       } catch (error) {
-        console.error("Web search error:", error);
+        console.error("❌ Web search error:", error);
+        searchDebugInfo = {
+          triggered: true,
+          error: error instanceof Error ? error.message : String(error),
+        };
         webSearchResults = "";
       }
+    } else {
+      console.log("ℹ️ Web search not triggered (no keywords detected)");
+      searchDebugInfo = { triggered: false, reason: "No search keywords in message" };
     }
 
     // System prompt
@@ -127,7 +159,18 @@ Når du svarer, start med å si at du har funnet oppdatert informasjon, og bruk 
 
     const response = completion.choices[0]?.message?.content || "Beklager, jeg kunne ikke generere et svar.";
 
-    return NextResponse.json({ response });
+    // Include debug info in development
+    const debugInfo = process.env.NODE_ENV === "development" ? {
+      search: searchDebugInfo,
+      needsWebSearch,
+      webSearchAvailable,
+      webSearchResultsLength: webSearchResults.length,
+    } : undefined;
+
+    return NextResponse.json({ 
+      response,
+      ...(debugInfo && { _debug: debugInfo }),
+    });
   } catch (error) {
     console.error("Error in chat API:", error);
     return NextResponse.json(
