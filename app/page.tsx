@@ -47,9 +47,13 @@ export default function Home() {
       const containerRect = container.getBoundingClientRect();
       const newWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
       
-      // Constrain between 30% and 70%
-      const constrainedWidth = Math.max(30, Math.min(70, newWidth));
-      setChatWidth(100 - constrainedWidth);
+      // Constrain left side between 30% and 70%, so chat is between 30% and 70%
+      const leftSideWidth = Math.max(30, Math.min(70, newWidth));
+      const chatSideWidth = 100 - leftSideWidth;
+      
+      // Ensure chat is at least 30% and left side is at least 30%
+      const finalChatWidth = Math.max(30, Math.min(70, chatSideWidth));
+      setChatWidth(finalChatWidth);
     };
 
     const handleMouseUp = () => {
@@ -135,7 +139,10 @@ export default function Home() {
       {/* Split screen layout when chat is open */}
       <div className={`flex h-screen ${chatOpen ? "overflow-hidden" : ""}`}>
         {/* Left side - Cases */}
-        <div className={`${chatOpen ? "flex-1 border-r border-gray-200 overflow-y-auto" : "w-full"} transition-all duration-300`}>
+        <div 
+          className={`${chatOpen ? "border-r border-gray-200 overflow-y-auto" : "w-full"} transition-all duration-300`}
+          style={chatOpen ? { width: `${100 - chatWidth}%`, minWidth: '30%', maxWidth: '70%' } : {}}
+        >
           <div className="max-w-4xl mx-auto py-8 px-4">
         <header className="mb-8">
           <h1 className="text-4xl font-serif text-[#1a1a1a] mb-1 italic">
