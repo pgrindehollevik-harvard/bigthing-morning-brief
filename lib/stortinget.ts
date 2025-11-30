@@ -47,7 +47,7 @@ export async function fetchRecentDocuments(): Promise<StortingetDocument[]> {
       })
       .slice(0, 5); // Limit to 5 documents
 
-    // Map with async to fetch tema from individual sak if needed
+    // Map with async to fetch full sak details including grunnlag, referat, etc.
     const recentDocuments = await Promise.all(
       filteredSaker.map(async (sak: any) => {
         const sakId = sak.id;
@@ -56,7 +56,6 @@ export async function fetchRecentDocuments(): Promise<StortingetDocument[]> {
         const date = sak.sist_oppdatert_dato || sak.respons_dato_tid || new Date().toISOString();
         
         // Construct URL to the specific sak on the public Stortinget website
-        // Format: https://www.stortinget.no/no/Saker-og-publikasjoner/Saker/Sak/?p=ID
         const url = sakId 
           ? `https://www.stortinget.no/no/Saker-og-publikasjoner/Saker/Sak/?p=${sakId}`
           : "";
@@ -69,23 +68,20 @@ export async function fetchRecentDocuments(): Promise<StortingetDocument[]> {
             : [sak.forslagstiller_liste.representant];
         }
 
-        // Extract tema from emne_liste (try from list first)
+        // Extract tema from emne_liste
         let tema: string | undefined;
         if (sak.emne_liste && sak.emne_liste.emne) {
           const emner = Array.isArray(sak.emne_liste.emne) 
             ? sak.emne_liste.emne 
             : [sak.emne_liste.emne];
-          // Get the first emne's navn (name)
           if (emner.length > 0 && emner[0].navn) {
             tema = emner[0].navn;
           }
         }
 
-        // If tema not found, try to infer from title/content using keyword matching
+        // If tema not found, try to infer from title/content
         if (!tema) {
           const searchText = `${sak.tittel || ""} ${sak.korttittel || ""}`.toLowerCase();
-          
-          // List of tema keywords (from user's list) - check in order of specificity
           const temaKeywords: Record<string, string> = {
             'statsbudsjett': 'Statsbudsjettet',
             'budsjett': 'Statsbudsjettet',
@@ -114,12 +110,95 @@ export async function fetchRecentDocuments(): Promise<StortingetDocument[]> {
           }
         }
 
+        // Fetch detailed sak information if sakId is available
+        let grunnlag = "";
+        let referat = "";
+        let fullText = "";
+        let komite = "";
+        let status = "";
+        let saksgang: Array<{ steg: string; dato?: string; komite?: string; beskrivelse?: string }> = [];
+
+        if (sakId) {
+          try {
+            const sakDetailResponse = await fetch(`${STORTINGET_API_BASE}/sak/${sakId}`, {
+              next: { revalidate: 300 }, // Cache for 5 minutes
+            });
+            
+            if (sakDetailResponse.ok) {
+              const sakDetailXml = await sakDetailResponse.text();
+              const sakDetailParsed = parser.parse(sakDetailXml);
+              const sakDetail = sakDetailParsed?.sak;
+              
+              if (sakDetail) {
+                // Extract grunnlag (basis for the case)
+                if (sakDetail.grunnlag_liste) {
+                  const grunnlagListe = Array.isArray(sakDetail.grunnlag_liste.grunnlag)
+                    ? sakDetail.grunnlag_liste.grunnlag
+                    : sakDetail.grunnlag_liste.grunnlag ? [sakDetail.grunnlag_liste.grunnlag] : [];
+                  grunnlag = grunnlagListe
+                    .map((g: any) => g.tekst || g.tittel || "")
+                    .filter((t: string) => t)
+                    .join("\n\n");
+                }
+
+                // Extract referat (meeting minutes)
+                if (sakDetail.referat_liste) {
+                  const referatListe = Array.isArray(sakDetail.referat_liste.referat)
+                    ? sakDetail.referat_liste.referat
+                    : sakDetail.referat_liste.referat ? [sakDetail.referat_liste.referat] : [];
+                  referat = referatListe
+                    .map((r: any) => r.tekst || r.innhold || "")
+                    .filter((t: string) => t)
+                    .join("\n\n");
+                }
+
+                // Extract komite (committee)
+                if (sakDetail.komite_liste && sakDetail.komite_liste.komite) {
+                  const komiteListe = Array.isArray(sakDetail.komite_liste.komite)
+                    ? sakDetail.komite_liste.komite
+                    : [sakDetail.komite_liste.komite];
+                  komite = komiteListe.map((k: any) => k.navn || "").filter((n: string) => n).join(", ");
+                }
+
+                // Extract status
+                if (sakDetail.status) {
+                  status = sakDetail.status;
+                }
+
+                // Extract saksgang (case progression)
+                if (sakDetail.saksgang_liste) {
+                  const saksgangListe = Array.isArray(sakDetail.saksgang_liste.saksgang)
+                    ? sakDetail.saksgang_liste.saksgang
+                    : sakDetail.saksgang_liste.saksgang ? [sakDetail.saksgang_liste.saksgang] : [];
+                  saksgang = saksgangListe.map((sg: any) => ({
+                    steg: sg.steg || sg.type || "",
+                    dato: sg.dato || "",
+                    komite: sg.komite?.navn || "",
+                    beskrivelse: sg.beskrivelse || sg.tekst || "",
+                  }));
+                }
+
+                // Combine all text content
+                const textParts: string[] = [];
+                if (sakDetail.innhold) textParts.push(sakDetail.innhold);
+                if (sakDetail.beskrivelse) textParts.push(sakDetail.beskrivelse);
+                if (grunnlag) textParts.push(`Grunnlag: ${grunnlag}`);
+                if (referat) textParts.push(`Referat: ${referat}`);
+                fullText = textParts.join("\n\n");
+              }
+            }
+          } catch (error) {
+            console.error(`Error fetching details for sak ${sakId}:`, error);
+            // Continue with basic data if detail fetch fails
+          }
+        }
+
         return {
           title,
           date,
           url,
           content: sak.henvisning || "",
-          text: sak.henvisning || sak.korttittel || "",
+          text: fullText || sak.henvisning || sak.korttittel || "",
           dokumentgruppe: sak.dokumentgruppe || "",
           forslagstiller_liste: forslagstiller_liste.map((rep: any) => ({
             id: rep.id || "",
@@ -133,6 +212,14 @@ export async function fetchRecentDocuments(): Promise<StortingetDocument[]> {
           henvisning: sak.henvisning || "",
           sakId: sakId,
           tema,
+          lastUpdated: sak.sist_oppdatert_dato || sak.respons_dato_tid,
+          // Enhanced fields
+          grunnlag: grunnlag || undefined,
+          referat: referat || undefined,
+          fullText: fullText || undefined,
+          komite: komite || undefined,
+          status: status || undefined,
+          saksgang: saksgang.length > 0 ? saksgang : undefined,
         } as StortingetDocument;
       })
     );

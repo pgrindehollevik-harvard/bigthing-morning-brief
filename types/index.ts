@@ -19,6 +19,19 @@ export interface StortingetDocument {
   henvisning?: string;
   sakId?: string;
   tema?: string;
+  lastUpdated?: string;
+  // Enhanced fields for richer context
+  grunnlag?: string; // Basis for the case
+  referat?: string; // Meeting minutes/reports
+  fullText?: string; // Full document text
+  komite?: string; // Committee handling the case
+  status?: string; // Current status
+  saksgang?: Array<{
+    steg: string;
+    dato?: string;
+    komite?: string;
+    beskrivelse?: string;
+  }>;
 }
 
 export interface DigestItem {

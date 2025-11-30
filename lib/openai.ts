@@ -5,27 +5,33 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const PROMPT_TEMPLATE = `Oppgave: Du får noen offentlige dokumenter fra Stortinget.
-Lag en kort norsk oppsummering for hvert dokument (2–4 setninger), og legg til 1–2 punkter om "Hvorfor dette er viktig".
-VIKTIG: I "whyItMatters"-feltet, separer hvert punkt med en ny linje (\\n). Hvert punkt skal være på sin egen linje.
+const PROMPT_TEMPLATE = `
+Du er en ekspert på norsk politikk og Stortinget. Din oppgave er å lage profesjonelle, innsiktsfulle oppsummeringer for politikere, beslutningstakere og interesserte borgere.
+
+For hvert dokument skal du:
+1. Lage en kort, men informativ oppsummering (2–4 setninger) som fanger essensen
+2. Identifisere 1–2 konkrete punkter om "Hvorfor dette er viktig" - fokus på praktiske implikasjoner, ikke generiske setninger
+3. Bruk markdown for struktur (overskrifter, lister, fet tekst for viktige poeng)
 
 VIKTIG FOR TITLER: 
 - For representantforslag: Behold "Representantforslag" i tittelen, men fjern representantenes navn. Start med "Representantforslag om..."
 - For proposisjon: Bruk den originale tittelen eller en kort versjon.
+
+VIKTIG: I "whyItMatters"-feltet, separer hvert punkt med en ny linje (\\n). Hvert punkt skal være på sin egen linje.
 
 Svar i ren JSON med følgende struktur:
 {
   "items": [
     {
       "title": "ren tittel uten representantnavn",
-      "summary": "2-4 setninger oppsummering",
-      "whyItMatters": "Første punkt om hvorfor dette er viktig\\nAndre punkt om hvorfor dette er viktig",
+      "summary": "2-4 setninger oppsummering som er informativ og relevant",
+      "whyItMatters": "Første konkrete punkt om hvorfor dette er viktig\\nAndre konkrete punkt om hvorfor dette er viktig",
       "url": "dokumentets url"
     }
   ]
 }
 
-Dokumenter:
+Dokumenter (inkluder all tilgjengelig kontekst):
 `;
 
 export async function summarizeDocuments(
@@ -40,15 +46,66 @@ export async function summarizeDocuments(
   }
 
   try {
-    // Prepare documents for the prompt
+    // Prepare documents for the prompt with full context
     const documentsText = documents
       .map(
-        (doc, index) => `
+        (doc, index) => {
+          let docText = `
 Dokument ${index + 1}:
 Tittel: ${doc.title}
+Dokumentgruppe: ${doc.dokumentgruppe || "Ikke spesifisert"}
+Tema: ${doc.tema || "Ikke spesifisert"}
 URL: ${doc.url}
-Innhold: ${doc.text || doc.content || "Ingen innhold tilgjengelig"}
-`
+`;
+
+          // Add grunnlag (basis for case) if available
+          if (doc.grunnlag) {
+            docText += `\nGrunnlag for saken:\n${doc.grunnlag}\n`;
+          }
+
+          // Add referat (meeting minutes) if available
+          if (doc.referat) {
+            docText += `\nReferat:\n${doc.referat}\n`;
+          }
+
+          // Add full text or fallback to basic content
+          if (doc.fullText) {
+            docText += `\nFullstendig tekst:\n${doc.fullText}\n`;
+          } else if (doc.text) {
+            docText += `\nInnhold: ${doc.text}\n`;
+          } else if (doc.content) {
+            docText += `\nInnhold: ${doc.content}\n`;
+          }
+
+          // Add komite (committee) if available
+          if (doc.komite) {
+            docText += `\nKomité: ${doc.komite}\n`;
+          }
+
+          // Add status if available
+          if (doc.status) {
+            docText += `\nStatus: ${doc.status}\n`;
+          }
+
+          // Add saksgang (case progression) if available
+          if (doc.saksgang && doc.saksgang.length > 0) {
+            docText += `\nSaksgang:\n`;
+            doc.saksgang.forEach((sg, i) => {
+              docText += `${i + 1}. ${sg.steg}`;
+              if (sg.dato) docText += ` (${sg.dato})`;
+              if (sg.komite) docText += ` - ${sg.komite}`;
+              if (sg.beskrivelse) docText += `: ${sg.beskrivelse}`;
+              docText += `\n`;
+            });
+          }
+
+          // Add source information
+          if (doc.forslagstiller_liste && doc.forslagstiller_liste.length > 0) {
+            docText += `\nForslagstiller(e): ${doc.forslagstiller_liste.map(r => `${r.fornavn} ${r.etternavn} (${r.parti?.navn || ""})`).join(", ")}\n`;
+          }
+
+          return docText;
+        }
       )
       .join("\n---\n");
 

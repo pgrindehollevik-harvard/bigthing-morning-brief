@@ -25,11 +25,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Build context from cases (if any)
+    // Build rich context from cases (if any)
     const casesContext = cases.length > 0
       ? cases
           .map(
-            (caseItem: DigestItem, index: number) => `
+            (caseItem: DigestItem, index: number) => {
+              let context = `
 Sak ${index + 1}:
 Tittel: ${caseItem.title}
 Oppsummering: ${caseItem.summary}
@@ -37,7 +38,11 @@ Hvorfor viktig: ${caseItem.whyItMatters}
 Tema: ${caseItem.tema || "Ikke spesifisert"}
 Kilde: ${caseItem.source?.type === "regjering" ? caseItem.source.department : caseItem.source?.representatives?.map((r: any) => `${r.name} (${r.party})`).join(", ") || "Ukjent"}
 URL: ${caseItem.url}
-`
+`;
+              // Add any additional context if available in the original document
+              // (This would come from the full StortingetDocument if we pass it through)
+              return context;
+            }
           )
           .join("\n---\n")
       : "Ingen saker er lagt til i kontekst ennå.";
@@ -127,19 +132,25 @@ URL: ${caseItem.url}
       searchDebugInfo = { triggered: false, reason: "No search keywords in message" };
     }
 
-    // System prompt - Natural, conversational tone
-    let systemPrompt = `Du er en kunnskapsrik og engasjert assistent som hjelper med å forstå norsk politikk og Stortinget. Du kommuniserer på en naturlig, vennlig og profesjonell måte - som en kollega som har god oversikt over politikk, ikke som en kundeservicemedarbeider.
+    // System prompt - Expert policy analyst tone
+    let systemPrompt = `Du er en ekspert på norsk politikk, Stortinget og offentlig forvaltning. Du gir innsiktsfulle, profesjonelle analyser og briefs for politikere, beslutningstakere og interesserte borgere.
 
 ${cases.length > 0 ? `Brukeren har lagt til følgende saker i kontekst:\n${casesContext}` : "Brukeren har ikke lagt til noen saker ennå, men du kan hjelpe med generelle spørsmål om norsk politikk og Stortinget."}
 
+Din rolle og ekspertise:
+- Du er en politisk analytiker med dyp forståelse av norsk politikk, Stortingets prosesser og offentlig forvaltning
+- Du gir konkrete, handlingsrettede innsikter - ikke generiske observasjoner
+- Du identifiserer politiske sammenhenger, implikasjoner og konsekvenser
+- Du forklarer komplekse saker på en tilgjengelig måte uten å miste nøyaktighet
+- Du er objektiv og balansert, men ikke nøytral - du gir meningsfulle analyser
+
 Din kommunikasjonsstil:
-- Vær naturlig og samtaleaktig, ikke formell eller robotaktig
-- Bruk en vennlig, profesjonell tone - som du snakker med en kollega
-- Vær direkte og tydelig, men ikke stiv eller korporativ
-- Når du refererer til sakene, vær konkret og relevant
-- Unngå generiske fraser som "Jeg hjelper deg gjerne" eller "Hva kan jeg hjelpe deg med?"
-- Start direkte med svaret, ikke med unnskyldninger eller disclaimers
-- Bruk markdown for å strukturere lange svar (overskrifter, lister, fet tekst for viktige poeng)`;
+- Vær direkte, tydelig og informativ - som en erfaren kollega som gir en brief
+- Unngå kundeservice-språk ("Jeg hjelper deg gjerne", "Hva kan jeg hjelpe med?")
+- Start direkte med innholdet, ikke disclaimers eller unnskyldninger
+- Bruk markdown for struktur (overskrifter, lister, **fet tekst** for viktige poeng)
+- Når du analyserer saker, vær konkret: hva betyr dette? Hvem påvirkes? Hva er neste steg?
+- Identifiser politiske dimensjoner: partipolitiske linjer, interessekonflikter, praktiske konsekvenser`;
 
     // Add web search results if available
     if (webSearchAvailable && webSearchResults) {
