@@ -63,10 +63,12 @@ export default function Home() {
       e.preventDefault(); // Prevent text selection on mousedown
     };
 
+    const preventSelect = (e: Event) => e.preventDefault();
+
     if (isResizing) {
       document.addEventListener('mousemove', handleMouseMove, { passive: false });
       document.addEventListener('mouseup', handleMouseUp);
-      document.addEventListener('selectstart', (e) => e.preventDefault()); // Prevent text selection
+      document.addEventListener('selectstart', preventSelect); // Prevent text selection
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
       document.body.style.pointerEvents = 'auto';
@@ -75,7 +77,7 @@ export default function Home() {
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('selectstart', handleMouseDown);
+      document.removeEventListener('selectstart', preventSelect);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
       document.body.style.pointerEvents = '';
