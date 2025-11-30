@@ -251,14 +251,14 @@ export default function Home() {
                     {item.whyItMatters}
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div className="flex items-center gap-3 flex-shrink-0">
                     {item.url && (
                       <a
                         href={item.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium"
+                        className="inline-flex items-center text-[#0066cc] hover:text-[#0052a3] font-medium whitespace-nowrap"
                       >
                         Les hele dokumentet →
                       </a>
@@ -271,13 +271,13 @@ export default function Home() {
                         }
                       }}
                       disabled={casesInChat.some((c) => c.url === item.url)}
-                      className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+                      className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed whitespace-nowrap flex-shrink-0"
                     >
                       {casesInChat.some((c) => c.url === item.url) ? "✓ I chat" : "+ Legg til i chat"}
                     </button>
                   </div>
                   {item.date && (
-                    <span className="text-xs text-gray-500 ml-auto">
+                    <span className="text-xs text-gray-500 whitespace-nowrap flex-shrink-0">
                       Oppdatert: {formatUpdateDate(item.date)}
                     </span>
                   )}
