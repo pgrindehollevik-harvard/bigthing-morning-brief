@@ -49,18 +49,33 @@ URL: ${caseItem.url}
     }));
 
     // Check if user is asking for web search or news
-    const needsWebSearch = /(nyheter|news|søk|finn|hva skjer|oppdatert|recent|latest|nylig|siste)/i.test(message);
+    const needsWebSearch = /(nyheter|news|søk|finn|hva skjer|oppdatert|recent|latest|nylig|siste|internett|avis|avisene)/i.test(message);
     
     let webSearchResults = "";
+    let webSearchAvailable = false;
+    
     if (needsWebSearch) {
       // Extract search terms from message and cases
-      const searchTerms = cases
-        .map((c: DigestItem) => `${c.title} ${c.tema || ""}`)
-        .join(" ");
+      const searchTerms = cases.length > 0
+        ? cases.map((c: DigestItem) => `${c.title} ${c.tema || ""}`).join(" ")
+        : message;
       
       try {
-        const searchQuery = `${searchTerms} norge nyheter`;
+        const searchQuery = cases.length > 0 
+          ? `${searchTerms} norge nyheter`
+          : `${message} norge nyheter`;
+        
+        console.log("Attempting web search with query:", searchQuery);
         webSearchResults = await searchWeb(searchQuery, 5);
+        webSearchAvailable = !!webSearchResults && !webSearchResults.includes("[Web search ikke konfigurert");
+        
+        if (webSearchResults && !webSearchAvailable) {
+          console.log("Web search returned configuration message");
+        } else if (webSearchResults) {
+          console.log("Web search successful, results length:", webSearchResults.length);
+        } else {
+          console.log("Web search returned empty results");
+        }
       } catch (error) {
         console.error("Web search error:", error);
         webSearchResults = "";
@@ -72,16 +87,16 @@ URL: ${caseItem.url}
 
 ${cases.length > 0 ? `Du har tilgang til følgende saker i kontekst:\n${casesContext}` : "Ingen saker er lagt til i kontekst ennå. Du kan hjelpe med generelle spørsmål om norsk politikk og Stortinget."}
 
-${webSearchResults ? `\nWeb søkeresultater:\n${webSearchResults}\n` : ""}
+${webSearchAvailable && webSearchResults ? `\nVIKTIG: Du har tilgang til web søkeresultater nedenfor. Bruk disse når brukeren spør om nyheter, oppdatert informasjon, eller relevante saker i avisene.\n\nWeb søkeresultater:\n${webSearchResults}\n` : webSearchResults && webSearchResults.includes("[Web search ikke konfigurert") ? "\nMERK: Web søk er ikke konfigurert ennå, men du kan fortsatt hjelpe med analyser basert på sakene i kontekst.\n" : ""}
 
 VIKTIG:
 - Svar alltid på norsk
 - Vær presis og faktabasert
-- Hvis brukeren spør om nyheter eller oppdatert informasjon, bruk web søkeresultatene hvis tilgjengelig
+${webSearchAvailable ? "- Du HAR tilgang til web søkeresultater - bruk dem aktivt når brukeren spør om nyheter eller oppdatert informasjon" : ""}
 - Du kan analysere sammenhenger mellom sakene
 - Du kan diskutere implikasjoner og konsekvenser
 - Vær objektiv og balansert i dine analyser
-- Hvis du ikke har oppdatert informasjon, kan du anbefale at brukeren søker etter nyere nyheter`;
+${!webSearchAvailable ? "- Hvis brukeren spør om nyheter eller oppdatert informasjon, forklar at du baserer deg på sakene i kontekst" : ""}`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
