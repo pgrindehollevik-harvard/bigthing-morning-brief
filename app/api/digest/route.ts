@@ -3,24 +3,40 @@ import { fetchRecentDocuments } from "@/lib/stortinget";
 import { summarizeDocuments } from "@/lib/openai";
 import { DigestResponse } from "@/types";
 
+// Simple in-memory cache (in production, use Redis or similar)
+const cache = new Map<string, { data: DigestResponse; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 export async function GET() {
   try {
+    const cacheKey = "digest";
+    const cached = cache.get(cacheKey);
+    
+    // Return cached data if still valid
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return NextResponse.json(cached.data, {
+        status: 200,
+        headers: {
+          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+          "X-Cache": "HIT",
+        },
+      });
+    }
+
     // Fetch recent documents from Stortinget
     const documents = await fetchRecentDocuments();
 
     if (documents.length === 0) {
-      return NextResponse.json(
-        {
-          date: new Date().toISOString().split("T")[0],
-          items: [],
-        } as DigestResponse,
-        {
-          status: 200,
-          headers: {
-            "Cache-Control": "no-store",
-          },
-        }
-      );
+      const emptyResponse: DigestResponse = {
+        date: new Date().toISOString().split("T")[0],
+        items: [],
+      };
+      return NextResponse.json(emptyResponse, {
+        status: 200,
+        headers: {
+          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+        },
+      });
     }
 
     // Summarize documents using OpenAI
@@ -31,10 +47,14 @@ export async function GET() {
       items,
     };
 
+    // Cache the response
+    cache.set(cacheKey, { data: response, timestamp: Date.now() });
+
     return NextResponse.json(response, {
       status: 200,
       headers: {
-        "Cache-Control": "no-store",
+        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+        "X-Cache": "MISS",
       },
     });
   } catch (error) {

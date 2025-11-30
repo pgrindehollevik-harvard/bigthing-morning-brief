@@ -68,6 +68,7 @@ Innhold: ${doc.text || doc.content || "Ingen innhold tilgjengelig"}
       ],
       response_format: { type: "json_object" },
       temperature: 0.7,
+      max_tokens: 2000, // Limit tokens for faster response
     });
 
     const content = completion.choices[0]?.message?.content;

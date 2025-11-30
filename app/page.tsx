@@ -19,7 +19,12 @@ export default function Home() {
     async function fetchDigest() {
       try {
         setLoading(true);
-        const response = await fetch("/api/digest");
+        // Add cache-busting only in development, use cache in production
+        const cacheBuster = process.env.NODE_ENV === 'development' ? `?t=${Date.now()}` : '';
+        const response = await fetch(`/api/digest${cacheBuster}`, {
+          // Use browser cache for faster subsequent loads
+          cache: 'default',
+        });
         if (!response.ok) {
           throw new Error("Failed to fetch digest");
         }
