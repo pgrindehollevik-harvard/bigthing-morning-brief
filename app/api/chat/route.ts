@@ -49,13 +49,26 @@ URL: ${caseItem.url}
     }));
 
     // Check if user is asking for web search or news
-    const needsWebSearch = /(nyheter|news|søk|finn|hva skjer|oppdatert|recent|latest|nylig|siste|internett|avis|avisene)/i.test(message);
+    // Also trigger search if user asks about news, articles, or if they explicitly mention searching
+    const searchKeywords = /(nyheter|news|søk|finn|hva skjer|oppdatert|recent|latest|nylig|siste|internett|avis|avisene|artikkel|artikler|google|nettet|nettside|nettsted)/i;
+    const needsWebSearch = searchKeywords.test(message) || 
+                          message.toLowerCase().includes("søk") ||
+                          message.toLowerCase().includes("search") ||
+                          message.toLowerCase().includes("nyheter");
+    
+    // ALWAYS try to search if:
+    // 1. User explicitly asks for search/news
+    // 2. User asks about cases and we have cases in context (likely wants updated info)
+    // 3. Message is a question about the cases
+    const isQuestion = message.trim().endsWith("?");
+    const shouldSearch = needsWebSearch || 
+                        (cases.length > 0 && (isQuestion || /(hva|what|om|about|informasjon|information|kan|can)/i.test(message)));
     
     let webSearchResults = "";
     let webSearchAvailable = false;
     let searchDebugInfo = null;
     
-    if (needsWebSearch) {
+    if (shouldSearch) {
       // Extract search terms from message and cases
       const searchTerms = cases.length > 0
         ? cases.map((c: DigestItem) => `${c.title} ${c.tema || ""}`).join(" ")
@@ -143,7 +156,7 @@ Web søkeresultater (FRESK INFORMASJON):
 ${webSearchResults}
 
 Når du svarer, start med å si at du har funnet oppdatert informasjon, og bruk deretter søkeresultatene for å gi et detaljert svar.`;
-    } else if (needsWebSearch && !webSearchAvailable) {
+    } else if (shouldSearch && !webSearchAvailable) {
       systemPrompt += `\n\nMERK: Brukeren ba om web søk, men søkeresultater er ikke tilgjengelig. Fortell brukeren at du baserer deg på sakene i kontekst.`;
     }
 
@@ -163,8 +176,10 @@ Når du svarer, start med å si at du har funnet oppdatert informasjon, og bruk 
     const debugInfo = process.env.NODE_ENV === "development" ? {
       search: searchDebugInfo,
       needsWebSearch,
+      shouldSearch,
       webSearchAvailable,
       webSearchResultsLength: webSearchResults.length,
+      hasApiKey: !!process.env.TAVILY_API_KEY,
     } : undefined;
 
     return NextResponse.json({ 

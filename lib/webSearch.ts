@@ -11,7 +11,11 @@ export async function searchWeb(query: string, maxResults: number = 5): Promise<
   
   if (tavilyKey) {
     try {
-      console.log('Calling Tavily API with query:', query);
+      // Add current year to query to prioritize recent results
+      const currentYear = new Date().getFullYear();
+      const enhancedQuery = `${query} ${currentYear} nylig`;
+      
+      console.log('Calling Tavily API with query:', enhancedQuery);
       const response = await fetch('https://api.tavily.com/search', {
         method: 'POST',
         headers: {
@@ -19,11 +23,13 @@ export async function searchWeb(query: string, maxResults: number = 5): Promise<
         },
         body: JSON.stringify({
           api_key: tavilyKey,
-          query: query,
-          search_depth: "basic",
+          query: enhancedQuery,
+          search_depth: "advanced", // Use advanced for better recency
           max_results: maxResults,
           include_answer: true,
           include_raw_content: false,
+          topic: "news", // Specify news topic for better recency
+          days: 30, // Only search last 30 days
         }),
       });
 
@@ -40,6 +46,46 @@ export async function searchWeb(query: string, maxResults: number = 5): Promise<
       console.log('Tavily results count:', data.results?.length || 0);
       
       if (data.results && data.results.length > 0) {
+        // Filter and sort results by recency (if published_date is available)
+        const sortedResults = data.results
+          .map((result: any) => {
+            // Try to extract date from published_date or content
+            let date: Date | null = null;
+            if (result.published_date) {
+              date = new Date(result.published_date);
+            } else if (result.content) {
+              // Try to find date patterns in content (Norwegian format)
+              const dateMatch = result.content.match(/\d{1,2}\.\s*(januar|februar|mars|april|mai|juni|juli|august|september|oktober|november|desember)\s*\d{4}/i);
+              if (dateMatch) {
+                // Norwegian date format - parse it
+                const months: Record<string, number> = {
+                  januar: 0, februar: 1, mars: 2, april: 3, mai: 4, juni: 5,
+                  juli: 6, august: 7, september: 8, oktober: 9, november: 10, desember: 11
+                };
+                const parts = dateMatch[0].match(/(\d{1,2})\.\s*(\w+)\s*(\d{4})/i);
+                if (parts) {
+                  const day = parseInt(parts[1]);
+                  const month = months[parts[2].toLowerCase()];
+                  const year = parseInt(parts[3]);
+                  if (month !== undefined) {
+                    date = new Date(year, month, day);
+                  }
+                }
+              }
+            }
+            return { ...result, parsedDate: date };
+          })
+          .sort((a: any, b: any) => {
+            // Sort by date (most recent first), or by relevance if no date
+            if (a.parsedDate && b.parsedDate) {
+              return b.parsedDate.getTime() - a.parsedDate.getTime();
+            }
+            if (a.parsedDate) return -1;
+            if (b.parsedDate) return 1;
+            return 0; // Keep original order if no dates
+          })
+          .slice(0, maxResults); // Take top results
+        
         let resultText = '';
         
         // Include answer if available
@@ -47,15 +93,19 @@ export async function searchWeb(query: string, maxResults: number = 5): Promise<
           resultText += `Svar: ${data.answer}\n\n`;
         }
         
-        // Include results
-        resultText += 'Kilder:\n';
-        resultText += data.results
-          .map((result: any, index: number) => 
-            `${index + 1}. ${result.title}\n   ${result.content || result.snippet || ''}\n   ${result.url || ''}`
-          )
+        // Include results with date info if available
+        resultText += 'Kilder (sortert etter nylighet):\n';
+        resultText += sortedResults
+          .map((result: any, index: number) => {
+            const dateStr = result.parsedDate 
+              ? ` [${result.parsedDate.toLocaleDateString('no-NO', { year: 'numeric', month: 'short', day: 'numeric' })}]`
+              : '';
+            return `${index + 1}. ${result.title}${dateStr}\n   ${result.content || result.snippet || ''}\n   ${result.url || ''}`;
+          })
           .join('\n\n');
         
         console.log('Returning search results, length:', resultText.length);
+        console.log('Results sorted by recency');
         return resultText;
       } else {
         console.log('Tavily returned no results');
