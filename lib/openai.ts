@@ -9,11 +9,15 @@ const PROMPT_TEMPLATE = `Oppgave: Du får noen offentlige dokumenter fra Stortin
 Lag en kort norsk oppsummering for hvert dokument (2–4 setninger), og legg til 1–2 punkter om "Hvorfor dette er viktig".
 VIKTIG: I "whyItMatters"-feltet, separer hvert punkt med en ny linje (\\n). Hvert punkt skal være på sin egen linje.
 
+VIKTIG FOR TITLER: 
+- For representantforslag: Ikke inkluder representantenes navn i tittelen. Start direkte med "Representantforslag om..." eller bare "Om..." hvis det er naturlig.
+- For proposisjon: Bruk den originale tittelen eller en kort versjon.
+
 Svar i ren JSON med følgende struktur:
 {
   "items": [
     {
-      "title": "dokumentets tittel",
+      "title": "ren tittel uten representantnavn",
       "summary": "2-4 setninger oppsummering",
       "whyItMatters": "Første punkt om hvorfor dette er viktig\\nAndre punkt om hvorfor dette er viktig",
       "url": "dokumentets url"
@@ -153,13 +157,24 @@ Innhold: ${doc.text || doc.content || "Ingen innhold tilgjengelig"}
           };
         }
 
-        return {
-          title: item.title || doc?.title || "Ingen tittel",
-          summary: item.summary || "Ingen oppsummering tilgjengelig",
-          whyItMatters: item.whyItMatters || "Ingen informasjon",
-          url: item.url || doc?.url || "",
-          source,
-        };
+      // Clean up title for representantforslag - remove representative names
+      let cleanTitle = item.title || doc?.title || "Ingen tittel";
+      if (doc?.dokumentgruppe === "representantforslag") {
+        // Remove patterns like "fra stortingsrepresentantene X, Y, Z" or "Representantforslag fra X, Y, Z"
+        cleanTitle = cleanTitle
+          .replace(/^Representantforslag fra stortingsrepresentantene[^,]+(?:, [^,]+)* og [^,]+ om /i, "Representantforslag om ")
+          .replace(/^Representantforslag fra [^,]+(?:, [^,]+)* og [^,]+ om /i, "Representantforslag om ")
+          .replace(/^Representantforslag fra [^,]+ om /i, "Representantforslag om ")
+          .replace(/^Representantforslag om /i, "Representantforslag om ");
+      }
+
+      return {
+        title: cleanTitle,
+        summary: item.summary || "Ingen oppsummering tilgjengelig",
+        whyItMatters: item.whyItMatters || "Ingen informasjon",
+        url: item.url || doc?.url || "",
+        source,
+      };
       })
     );
 
