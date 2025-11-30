@@ -42,11 +42,16 @@ export default function Home() {
 
   const formatUpdateDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString("no-NO", {
+    const dateStr = date.toLocaleDateString("no-NO", {
       day: "numeric",
       month: "short",
       year: "numeric",
     });
+    const timeStr = date.toLocaleTimeString("no-NO", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    return `${dateStr} ${timeStr}`;
   };
 
   if (loading) {
