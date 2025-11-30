@@ -102,7 +102,7 @@ export default function Home() {
                 {item.source && (
                   <div className="mb-3 flex flex-wrap gap-2">
                     {item.source.type === "regjering" && (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-200 text-gray-800 border border-gray-300">
                         {item.source.department || "Regjeringen"}
                       </span>
                     )}

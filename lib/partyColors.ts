@@ -17,11 +17,11 @@ export const PARTY_COLORS: Record<string, { bg: string; text: string; border?: s
     text: "text-white",
     border: "border-blue-700",
   },
-  // Fremskrittspartiet (FrP) - Light Blue/Turquoise
+  // Fremskrittspartiet (FrP) - Purple
   FrP: {
-    bg: "bg-cyan-500",
+    bg: "bg-purple-600",
     text: "text-white",
-    border: "border-cyan-600",
+    border: "border-purple-700",
   },
   // Senterpartiet (Sp) - Green
   Sp: {
