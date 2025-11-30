@@ -3,6 +3,109 @@
 import { useState, useRef, useEffect } from "react";
 import { DigestItem } from "@/types";
 
+// Component to render message content with clickable links
+function MessageContent({ content, isUser = false }: { content: string; isUser?: boolean }) {
+  // Parse markdown-style links [text](url) and regular URLs
+  const parts: (string | { text: string; url: string })[] = [];
+  let lastIndex = 0;
+  
+  // Match markdown links [text](url) - handle both formats
+  const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  let match;
+  
+  while ((match = markdownLinkRegex.exec(content)) !== null) {
+    // Add text before the link
+    if (match.index > lastIndex) {
+      parts.push(content.substring(lastIndex, match.index));
+    }
+    // Add the link
+    parts.push({ text: match[1], url: match[2] });
+    lastIndex = match.index + match[0].length;
+  }
+  
+  // Add remaining text
+  if (lastIndex < content.length) {
+    parts.push(content.substring(lastIndex));
+  }
+  
+  // If no markdown links found, try to find plain URLs
+  if (parts.length === 1 && typeof parts[0] === 'string') {
+    const urlRegex = /(https?:\/\/[^\s\)]+)/g;
+    const text = parts[0] as string;
+    const newParts: (string | { text: string; url: string })[] = [];
+    let urlLastIndex = 0;
+    let urlMatch;
+    
+    while ((urlMatch = urlRegex.exec(text)) !== null) {
+      if (urlMatch.index > urlLastIndex) {
+        newParts.push(text.substring(urlLastIndex, urlMatch.index));
+      }
+      // Clean up URL (remove trailing punctuation that's not part of URL)
+      let cleanUrl = urlMatch[1];
+      cleanUrl = cleanUrl.replace(/[.,;:!?]+$/, '');
+      newParts.push({ text: cleanUrl, url: cleanUrl });
+      urlLastIndex = urlMatch.index + urlMatch[0].length;
+    }
+    
+    if (urlLastIndex < text.length) {
+      newParts.push(text.substring(urlLastIndex));
+    }
+    
+    if (newParts.length > 1) {
+      parts.length = 0;
+      parts.push(...newParts);
+    }
+  }
+  
+  return (
+    <div className="text-[15px] leading-relaxed">
+      {parts.map((part, i) => {
+        if (typeof part === 'string') {
+          return <span key={i} className="whitespace-pre-wrap">{part}</span>;
+        } else {
+          // Extract domain for display
+          let displayText = part.text;
+          try {
+            const url = new URL(part.url);
+            displayText = url.hostname.replace('www.', '');
+          } catch (e) {
+            // Keep original text if URL parsing fails
+          }
+          
+          return (
+            <a
+              key={i}
+              href={part.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 mx-0.5 my-1 rounded-md transition-colors text-sm font-medium no-underline ${
+                isUser
+                  ? "bg-white/20 text-white hover:bg-white/30"
+                  : "bg-[#0066cc] text-white hover:bg-[#0052a3]"
+              }`}
+            >
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
+              </svg>
+              {displayText}
+            </a>
+          );
+        }
+      })}
+    </div>
+  );
+}
+
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -206,7 +309,7 @@ export default function ChatWindow({
                   : "bg-[#f5f5f5] text-[#1a1a1a]"
               }`}
             >
-              <p className="whitespace-pre-wrap text-[15px] leading-relaxed">{msg.content}</p>
+              <MessageContent content={msg.content} isUser={msg.role === "user"} />
             </div>
           </div>
         ))}

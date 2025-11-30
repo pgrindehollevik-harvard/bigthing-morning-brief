@@ -45,16 +45,11 @@ export default function Home() {
 
   const formatUpdateDate = (dateString: string) => {
     const date = new Date(dateString);
-    const dateStr = date.toLocaleDateString("no-NO", {
+    return date.toLocaleDateString("no-NO", {
       day: "numeric",
       month: "short",
       year: "numeric",
     });
-    const timeStr = date.toLocaleTimeString("no-NO", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    return `${dateStr} ${timeStr}`;
   };
 
   if (loading) {
@@ -92,8 +87,8 @@ export default function Home() {
         <div className={`${chatOpen ? "w-1/2 border-r border-gray-200 overflow-y-auto" : "w-full"} transition-all duration-300`}>
           <div className="max-w-4xl mx-auto py-8 px-4">
         <header className="mb-8">
-          <h1 className="text-3xl font-semibold text-[#1a1a1a] mb-1">
-            Stortinget Morning Brief
+          <h1 className="text-3xl font-serif text-[#1a1a1a] mb-1 italic">
+            lilletinget.ai
           </h1>
           {digest && (
             <p className="text-sm text-[#666]">
