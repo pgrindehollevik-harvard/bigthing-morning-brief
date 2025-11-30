@@ -286,10 +286,6 @@ export default function Home() {
               onRemoveCase={(index) => {
                 setCasesInChat(casesInChat.filter((_, i) => i !== index));
               }}
-              chatWidth={chatWidth}
-              setChatWidth={setChatWidth}
-              isResizing={isResizing}
-              setIsResizing={setIsResizing}
             />
           </div>
         )}
