@@ -125,7 +125,7 @@ export default function Home() {
           <div className="max-w-4xl mx-auto py-8 px-4">
         <header className="mb-8">
           <h1 className="text-4xl font-serif text-[#1a1a1a] mb-1 italic">
-            folketinget.ai
+            tinget.ai
           </h1>
           {digest && (
             <p className="text-sm text-[#666]">
