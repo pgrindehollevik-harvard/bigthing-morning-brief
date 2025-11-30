@@ -40,6 +40,15 @@ export default function Home() {
     });
   };
 
+  const formatUpdateDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("no-NO", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -92,7 +101,7 @@ export default function Home() {
             {digest?.items.map((item, index) => (
               <div
                 key={index}
-                className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
+                className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow relative"
               >
                 <h2 className="text-2xl font-semibold text-gray-900 mb-3">
                   {item.title}
@@ -172,16 +181,23 @@ export default function Home() {
                     {item.whyItMatters}
                   </div>
                 </div>
-                {item.url && (
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    Les hele dokumentet →
-                  </a>
-                )}
+                <div className="flex items-center justify-between">
+                  {item.url && (
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      Les hele dokumentet →
+                    </a>
+                  )}
+                  {item.date && (
+                    <span className="text-xs text-gray-500 ml-auto">
+                      Oppdatert: {formatUpdateDate(item.date)}
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
           </div>

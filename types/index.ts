@@ -27,6 +27,7 @@ export interface DigestItem {
   whyItMatters: string;
   url: string;
   tema?: string;
+  date?: string;
   source?: {
     type: "regjering" | "representant";
     department?: string;

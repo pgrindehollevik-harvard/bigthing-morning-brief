@@ -134,7 +134,8 @@ export async function fetchRecentDocuments(): Promise<StortingetDocument[]> {
           sakId: sakId,
           tema,
         } as StortingetDocument;
-      });
+      })
+    );
 
     return recentDocuments;
   } catch (error) {

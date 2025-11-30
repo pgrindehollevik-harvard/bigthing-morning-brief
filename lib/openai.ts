@@ -177,6 +177,7 @@ Innhold: ${doc.text || doc.content || "Ingen innhold tilgjengelig"}
         whyItMatters: item.whyItMatters || "Ingen informasjon",
         url: item.url || doc?.url || "",
         tema: doc?.tema,
+        date: doc?.date,
         source,
       };
       })
