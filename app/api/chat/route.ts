@@ -83,20 +83,29 @@ URL: ${caseItem.url}
     }
 
     // System prompt
-    const systemPrompt = `Du er en ekspert på norsk politikk og Stortinget. Du hjelper brukere med å analysere og forstå saker fra Stortinget.
+    let systemPrompt = `Du er en ekspert på norsk politikk og Stortinget. Du hjelper brukere med å analysere og forstå saker fra Stortinget.
 
 ${cases.length > 0 ? `Du har tilgang til følgende saker i kontekst:\n${casesContext}` : "Ingen saker er lagt til i kontekst ennå. Du kan hjelpe med generelle spørsmål om norsk politikk og Stortinget."}
-
-${webSearchAvailable && webSearchResults ? `\nVIKTIG: Du har tilgang til web søkeresultater nedenfor. Bruk disse når brukeren spør om nyheter, oppdatert informasjon, eller relevante saker i avisene.\n\nWeb søkeresultater:\n${webSearchResults}\n` : webSearchResults && webSearchResults.includes("[Web search ikke konfigurert") ? "\nMERK: Web søk er ikke konfigurert ennå, men du kan fortsatt hjelpe med analyser basert på sakene i kontekst.\n" : ""}
 
 VIKTIG:
 - Svar alltid på norsk
 - Vær presis og faktabasert
-${webSearchAvailable ? "- Du HAR tilgang til web søkeresultater - bruk dem aktivt når brukeren spør om nyheter eller oppdatert informasjon" : ""}
 - Du kan analysere sammenhenger mellom sakene
 - Du kan diskutere implikasjoner og konsekvenser
-- Vær objektiv og balansert i dine analyser
-${!webSearchAvailable ? "- Hvis brukeren spør om nyheter eller oppdatert informasjon, forklar at du baserer deg på sakene i kontekst" : ""}`;
+- Vær objektiv og balansert i dine analyser`;
+
+    // Add web search results if available
+    if (webSearchAvailable && webSearchResults) {
+      systemPrompt += `\n\nVIKTIG - WEB SØKERESULTATER TILGJENGELIG:
+Du HAR tilgang til oppdaterte web søkeresultater nedenfor. Når brukeren spør om nyheter, oppdatert informasjon, eller relevante saker i avisene, MÅ du bruke disse søkeresultatene aktivt. Ikke si at du ikke kan søke - du kan! Bruk informasjonen fra søkeresultatene for å gi oppdaterte og relevante svar.
+
+Web søkeresultater:
+${webSearchResults}
+
+Når du svarer, referer til kildene fra søkeresultatene og bruk informasjonen derfra.`;
+    } else if (needsWebSearch && !webSearchAvailable) {
+      systemPrompt += `\n\nMERK: Brukeren ba om web søk, men søkeresultater er ikke tilgjengelig. Fortell brukeren at du baserer deg på sakene i kontekst.`;
+    }
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",

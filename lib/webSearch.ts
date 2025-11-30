@@ -6,15 +6,19 @@
 
 export async function searchWeb(query: string, maxResults: number = 5): Promise<string> {
   // Try Tavily first (if API key is set)
-  if (process.env.TAVILY_API_KEY) {
+  const tavilyKey = process.env.TAVILY_API_KEY;
+  console.log('Tavily API key exists:', !!tavilyKey, 'Length:', tavilyKey?.length || 0);
+  
+  if (tavilyKey) {
     try {
+      console.log('Calling Tavily API with query:', query);
       const response = await fetch('https://api.tavily.com/search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          api_key: process.env.TAVILY_API_KEY,
+          api_key: tavilyKey,
           query: query,
           search_depth: "basic",
           max_results: maxResults,
@@ -23,11 +27,17 @@ export async function searchWeb(query: string, maxResults: number = 5): Promise<
         }),
       });
 
+      console.log('Tavily response status:', response.status);
+
       if (!response.ok) {
-        throw new Error(`Tavily API error: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Tavily API error response:', errorText);
+        throw new Error(`Tavily API error: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('Tavily response data keys:', Object.keys(data));
+      console.log('Tavily results count:', data.results?.length || 0);
       
       if (data.results && data.results.length > 0) {
         let resultText = '';
@@ -45,12 +55,17 @@ export async function searchWeb(query: string, maxResults: number = 5): Promise<
           )
           .join('\n\n');
         
+        console.log('Returning search results, length:', resultText.length);
         return resultText;
+      } else {
+        console.log('Tavily returned no results');
       }
     } catch (error) {
       console.error('Tavily search error:', error);
       // Fall through to try other APIs or return empty
     }
+  } else {
+    console.log('TAVILY_API_KEY not found in environment');
   }
 
   // Try SerpAPI (if API key is set)
