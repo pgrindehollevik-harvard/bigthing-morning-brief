@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { DigestResponse, DigestItem } from "@/types";
 import { getPartyColors } from "@/lib/partyColors";
 import ChatWindow from "./components/ChatWindow";
@@ -11,6 +11,9 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [casesInChat, setCasesInChat] = useState<DigestItem[]>([]);
+  const [chatWidth, setChatWidth] = useState(50); // Percentage width
+  const [isResizing, setIsResizing] = useState(false);
+  const resizeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function fetchDigest() {
@@ -32,6 +35,40 @@ export default function Home() {
 
     fetchDigest();
   }, []);
+
+  // Handle resizing
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      const container = resizeRef.current?.parentElement;
+      if (!container) return;
+      
+      const containerRect = container.getBoundingClientRect();
+      const newWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
+      
+      // Constrain between 30% and 70%
+      const constrainedWidth = Math.max(30, Math.min(70, newWidth));
+      setChatWidth(100 - constrainedWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -80,15 +117,15 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fafafa]">
+    <div className="min-h-screen bg-[#f8f6f3]">
       {/* Split screen layout when chat is open */}
       <div className={`flex h-screen ${chatOpen ? "overflow-hidden" : ""}`}>
         {/* Left side - Cases */}
-        <div className={`${chatOpen ? "w-1/2 border-r border-gray-200 overflow-y-auto" : "w-full"} transition-all duration-300`}>
+        <div className={`${chatOpen ? "flex-1 border-r border-gray-200 overflow-y-auto" : "w-full"} transition-all duration-300`}>
           <div className="max-w-4xl mx-auto py-8 px-4">
         <header className="mb-8">
-          <h1 className="text-3xl font-serif text-[#1a1a1a] mb-1 italic">
-            lilletinget.ai
+          <h1 className="text-4xl font-serif text-[#1a1a1a] mb-1 italic">
+            folketinget.ai
           </h1>
           {digest && (
             <p className="text-sm text-[#666]">
@@ -226,9 +263,22 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Resizer */}
+        {chatOpen && (
+          <div
+            ref={resizeRef}
+            onMouseDown={() => setIsResizing(true)}
+            className="bg-gray-200 hover:bg-[#0066cc] cursor-col-resize transition-colors z-10"
+            style={{ width: '4px', minWidth: '4px' }}
+          />
+        )}
+
         {/* Right side - Chat (when open) */}
         {chatOpen && (
-          <div className="w-1/2 border-l border-gray-200 bg-white flex flex-col">
+          <div 
+            className="border-l border-gray-200 bg-white flex flex-col"
+            style={{ width: `${chatWidth}%` }}
+          >
             <ChatWindow
               isOpen={chatOpen}
               onClose={() => setChatOpen(false)}
@@ -236,6 +286,10 @@ export default function Home() {
               onRemoveCase={(index) => {
                 setCasesInChat(casesInChat.filter((_, i) => i !== index));
               }}
+              chatWidth={chatWidth}
+              setChatWidth={setChatWidth}
+              isResizing={isResizing}
+              setIsResizing={setIsResizing}
             />
           </div>
         )}

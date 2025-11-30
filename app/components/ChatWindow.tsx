@@ -239,25 +239,24 @@ export default function ChatWindow({
 
       {/* Cases in context */}
       {cases.length > 0 && (
-        <div className="p-3 border-b border-gray-200 bg-[#fafafa] max-h-24 overflow-y-auto">
+        <div className="p-3 border-b border-gray-200 bg-[#fafafa] max-h-40 overflow-y-auto">
           <p className="text-xs font-medium text-[#666] mb-2">
             Saker i kontekst:
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
             {cases.map((caseItem, index) => (
-              <span
+              <div
                 key={index}
-                className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded text-xs text-[#4a4a4a] border border-gray-200"
+                className="flex items-start justify-between gap-2 px-3 py-2 bg-white rounded text-sm text-[#4a4a4a] border border-gray-200"
               >
-                {caseItem.title.substring(0, 35)}
-                {caseItem.title.length > 35 && "..."}
+                <span className="flex-1">{caseItem.title}</span>
                 <button
                   onClick={() => onRemoveCase(index)}
-                  className="text-[#999] hover:text-[#cc0000] ml-1"
+                  className="text-[#999] hover:text-[#cc0000] ml-2 flex-shrink-0"
                 >
                   ×
                 </button>
-              </span>
+              </div>
             ))}
           </div>
         </div>
