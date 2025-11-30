@@ -85,14 +85,18 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-[#fafafa]">
+      {/* Split screen layout when chat is open */}
+      <div className={`flex h-screen ${chatOpen ? "overflow-hidden" : ""}`}>
+        {/* Left side - Cases */}
+        <div className={`${chatOpen ? "w-1/2 border-r border-gray-200 overflow-y-auto" : "w-full"} transition-all duration-300`}>
+          <div className="max-w-4xl mx-auto py-8 px-4">
         <header className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-semibold text-[#1a1a1a] mb-1">
             Stortinget Morning Brief
           </h1>
           {digest && (
-            <p className="text-lg text-gray-600">
+            <p className="text-sm text-[#666]">
               {formatDate(digest.date)}
             </p>
           )}
@@ -109,9 +113,9 @@ export default function Home() {
             {digest?.items.map((item, index) => (
               <div
                 key={index}
-                className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow relative"
+                className="bg-white rounded-lg border border-gray-200 p-6 hover:border-gray-300 transition-all relative mb-4"
               >
-                <h2 className="text-2xl font-semibold text-gray-900 mb-3">
+                <h2 className="text-xl font-medium text-[#1a1a1a] mb-3 leading-snug">
                   {item.title}
                 </h2>
                 
@@ -178,14 +182,14 @@ export default function Home() {
                   )}
                 </div>
 
-                <p className="text-gray-700 mb-4 leading-relaxed">
+                <p className="text-[#4a4a4a] mb-4 leading-relaxed text-[15px]">
                   {item.summary}
                 </p>
-                <div className="bg-blue-50 rounded-md p-4 mb-4">
-                  <h3 className="font-semibold text-blue-900 mb-2">
+                <div className="bg-[#f5f5f5] rounded-md p-4 mb-4 border-l-4 border-[#0066cc]">
+                  <h3 className="font-medium text-[#1a1a1a] mb-2 text-sm">
                     Hvorfor dette er viktig:
                   </h3>
-                  <div className="text-blue-800 whitespace-pre-line leading-relaxed">
+                  <div className="text-[#4a4a4a] whitespace-pre-line leading-relaxed text-[15px]">
                     {item.whyItMatters}
                   </div>
                 </div>
@@ -224,38 +228,46 @@ export default function Home() {
             ))}
           </div>
         )}
+          </div>
+        </div>
+
+        {/* Right side - Chat (when open) */}
+        {chatOpen && (
+          <div className="w-1/2 border-l border-gray-200 bg-white flex flex-col">
+            <ChatWindow
+              isOpen={chatOpen}
+              onClose={() => setChatOpen(false)}
+              cases={casesInChat}
+              onRemoveCase={(index) => {
+                setCasesInChat(casesInChat.filter((_, i) => i !== index));
+              }}
+            />
+          </div>
+        )}
       </div>
 
-      {/* Floating Chat Button */}
-      <button
-        onClick={() => setChatOpen(true)}
-        className="fixed bottom-6 right-6 bg-blue-600 text-white px-6 py-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors flex items-center gap-2 z-40"
-      >
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      {/* Floating Chat Button (only when chat is closed) */}
+      {!chatOpen && (
+        <button
+          onClick={() => setChatOpen(true)}
+          className="fixed bottom-6 right-6 bg-[#0066cc] text-white px-5 py-2.5 rounded-lg shadow-lg hover:bg-[#0052a3] transition-colors flex items-center gap-2 z-40 font-medium text-sm"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-          />
-        </svg>
-        Chat {casesInChat.length > 0 && `(${casesInChat.length})`}
-      </button>
-
-      {/* Chat Window */}
-      <ChatWindow
-        isOpen={chatOpen}
-        onClose={() => setChatOpen(false)}
-        cases={casesInChat}
-        onRemoveCase={(index) => {
-          setCasesInChat(casesInChat.filter((_, i) => i !== index));
-        }}
-      />
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+            />
+          </svg>
+          Chat {casesInChat.length > 0 && `(${casesInChat.length})`}
+        </button>
+      )}
     </div>
   );
 }
