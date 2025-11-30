@@ -19,6 +19,7 @@ const config: Config = {
     'bg-lime-100', 'text-lime-800', 'border-lime-200',
     'bg-gray-100', 'text-gray-800', 'border-gray-200',
     'bg-gray-200', 'text-gray-800', 'border-gray-300',
+    'bg-slate-100', 'text-slate-700', 'border-slate-300',
   ],
   theme: {
     extend: {},

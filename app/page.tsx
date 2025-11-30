@@ -98,14 +98,23 @@ export default function Home() {
                   {item.title}
                 </h2>
                 
-                {/* Source tags */}
-                {item.source && (
-                  <div className="mb-3 flex flex-wrap gap-2">
-                    {item.source.type === "regjering" && (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-200 text-gray-800 border border-gray-300">
-                        {item.source.department || "Regjeringen"}
-                      </span>
-                    )}
+                {/* Source tags and tema */}
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {/* Tema tag */}
+                  {item.tema && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-slate-100 text-slate-700 border border-slate-300">
+                      {item.tema}
+                    </span>
+                  )}
+                  
+                  {/* Source tags */}
+                  {item.source && (
+                    <>
+                      {item.source.type === "regjering" && (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-200 text-gray-800 border border-gray-300">
+                          {item.source.department || "Regjeringen"}
+                        </span>
+                      )}
                     {item.source.type === "representant" && item.source.representatives && item.source.representatives.length > 0 && (
                       <>
                         {item.source.representatives.map((rep, repIndex) => {
@@ -147,9 +156,10 @@ export default function Home() {
                           );
                         })}
                       </>
-                    )}
-                  </div>
-                )}
+                      )}
+                    </>
+                  )}
+                </div>
 
                 <p className="text-gray-700 mb-4 leading-relaxed">
                   {item.summary}

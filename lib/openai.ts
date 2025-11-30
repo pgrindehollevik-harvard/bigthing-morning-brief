@@ -10,7 +10,7 @@ Lag en kort norsk oppsummering for hvert dokument (2–4 setninger), og legg til
 VIKTIG: I "whyItMatters"-feltet, separer hvert punkt med en ny linje (\\n). Hvert punkt skal være på sin egen linje.
 
 VIKTIG FOR TITLER: 
-- For representantforslag: Ikke inkluder representantenes navn i tittelen. Start direkte med "Representantforslag om..." eller bare "Om..." hvis det er naturlig.
+- For representantforslag: Behold "Representantforslag" i tittelen, men fjern representantenes navn. Start med "Representantforslag om..."
 - For proposisjon: Bruk den originale tittelen eller en kort versjon.
 
 Svar i ren JSON med følgende struktur:
@@ -157,15 +157,18 @@ Innhold: ${doc.text || doc.content || "Ingen innhold tilgjengelig"}
           };
         }
 
-      // Clean up title for representantforslag - remove representative names
+      // Clean up title for representantforslag - remove representative names but keep "Representantforslag"
       let cleanTitle = item.title || doc?.title || "Ingen tittel";
       if (doc?.dokumentgruppe === "representantforslag") {
-        // Remove patterns like "fra stortingsrepresentantene X, Y, Z" or "Representantforslag fra X, Y, Z"
+        // Remove patterns like "fra stortingsrepresentantene X, Y, Z" but keep "Representantforslag"
         cleanTitle = cleanTitle
           .replace(/^Representantforslag fra stortingsrepresentantene[^,]+(?:, [^,]+)* og [^,]+ om /i, "Representantforslag om ")
           .replace(/^Representantforslag fra [^,]+(?:, [^,]+)* og [^,]+ om /i, "Representantforslag om ")
-          .replace(/^Representantforslag fra [^,]+ om /i, "Representantforslag om ")
-          .replace(/^Representantforslag om /i, "Representantforslag om ");
+          .replace(/^Representantforslag fra [^,]+ om /i, "Representantforslag om ");
+        // Ensure it starts with "Representantforslag" if it doesn't already
+        if (!cleanTitle.startsWith("Representantforslag")) {
+          cleanTitle = "Representantforslag om " + cleanTitle;
+        }
       }
 
       return {
@@ -173,6 +176,7 @@ Innhold: ${doc.text || doc.content || "Ingen innhold tilgjengelig"}
         summary: item.summary || "Ingen oppsummering tilgjengelig",
         whyItMatters: item.whyItMatters || "Ingen informasjon",
         url: item.url || doc?.url || "",
+        tema: doc?.tema,
         source,
       };
       })

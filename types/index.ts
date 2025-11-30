@@ -18,6 +18,7 @@ export interface StortingetDocument {
   forslagstiller_liste?: Representative[];
   henvisning?: string;
   sakId?: string;
+  tema?: string;
 }
 
 export interface DigestItem {
@@ -25,6 +26,7 @@ export interface DigestItem {
   summary: string;
   whyItMatters: string;
   url: string;
+  tema?: string;
   source?: {
     type: "regjering" | "representant";
     department?: string;

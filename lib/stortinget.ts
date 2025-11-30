@@ -66,6 +66,18 @@ export async function fetchRecentDocuments(): Promise<StortingetDocument[]> {
             : [sak.forslagstiller_liste.representant];
         }
 
+        // Extract tema from emne_liste
+        let tema: string | undefined;
+        if (sak.emne_liste && sak.emne_liste.emne) {
+          const emner = Array.isArray(sak.emne_liste.emne) 
+            ? sak.emne_liste.emne 
+            : [sak.emne_liste.emne];
+          // Get the first emne's navn (name)
+          if (emner.length > 0 && emner[0].navn) {
+            tema = emner[0].navn;
+          }
+        }
+
         return {
           title,
           date,
@@ -84,6 +96,7 @@ export async function fetchRecentDocuments(): Promise<StortingetDocument[]> {
           })),
           henvisning: sak.henvisning || "",
           sakId: sakId,
+          tema,
         } as StortingetDocument;
       });
 
