@@ -40,6 +40,7 @@ export default function Home() {
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return;
+      e.preventDefault(); // Prevent text selection
       const container = resizeRef.current?.parentElement;
       if (!container) return;
       
@@ -53,20 +54,31 @@ export default function Home() {
 
     const handleMouseUp = () => {
       setIsResizing(false);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.body.style.pointerEvents = '';
+    };
+
+    const handleMouseDown = (e: MouseEvent) => {
+      e.preventDefault(); // Prevent text selection on mousedown
     };
 
     if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mousemove', handleMouseMove, { passive: false });
       document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('selectstart', (e) => e.preventDefault()); // Prevent text selection
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
+      document.body.style.pointerEvents = 'auto';
     }
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('selectstart', handleMouseDown);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
+      document.body.style.pointerEvents = '';
     };
   }, [isResizing]);
 
@@ -267,9 +279,12 @@ export default function Home() {
         {chatOpen && (
           <div
             ref={resizeRef}
-            onMouseDown={() => setIsResizing(true)}
-            className="bg-gray-200 hover:bg-[#0066cc] cursor-col-resize transition-colors z-10"
-            style={{ width: '4px', minWidth: '4px' }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              setIsResizing(true);
+            }}
+            className="bg-gray-200 hover:bg-[#0066cc] cursor-col-resize transition-colors z-10 select-none"
+            style={{ width: '4px', minWidth: '4px', userSelect: 'none' }}
           />
         )}
 
