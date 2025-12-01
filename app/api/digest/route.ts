@@ -7,13 +7,19 @@ import { DigestResponse } from "@/types";
 const cache = new Map<string, { data: DigestResponse; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const cacheKey = "digest";
+    // Check for force refresh parameter
+    const { searchParams } = new URL(request.url);
+    const forceRefresh = searchParams.get("refresh") === "true";
+    
+    // Use date-based cache key so it refreshes daily
+    const today = new Date().toISOString().split("T")[0];
+    const cacheKey = `digest-${today}`;
     const cached = cache.get(cacheKey);
     
-    // Return cached data if still valid
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    // Return cached data if still valid and not forcing refresh
+    if (!forceRefresh && cached && Date.now() - cached.timestamp < CACHE_TTL) {
       return NextResponse.json(cached.data, {
         status: 200,
         headers: {
@@ -47,8 +53,18 @@ export async function GET() {
       items,
     };
 
-    // Cache the response
+    // Cache the response with date-based key
     cache.set(cacheKey, { data: response, timestamp: Date.now() });
+    
+    // Clean up old cache entries (keep only today and yesterday)
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayKey = `digest-${yesterday.toISOString().split("T")[0]}`;
+    for (const [key] of cache.entries()) {
+      if (key !== cacheKey && key !== yesterdayKey) {
+        cache.delete(key);
+      }
+    }
 
     return NextResponse.json(response, {
       status: 200,

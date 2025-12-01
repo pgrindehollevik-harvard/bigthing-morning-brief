@@ -15,29 +15,27 @@ export default function Home() {
   const [isResizing, setIsResizing] = useState(false);
   const resizeRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    async function fetchDigest() {
-      try {
-        setLoading(true);
-        // Add cache-busting only in development, use cache in production
-        const cacheBuster = process.env.NODE_ENV === 'development' ? `?t=${Date.now()}` : '';
-        const response = await fetch(`/api/digest${cacheBuster}`, {
-          // Use browser cache for faster subsequent loads
-          cache: 'default',
-        });
-        if (!response.ok) {
-          throw new Error("Failed to fetch digest");
-        }
-        const data: DigestResponse = await response.json();
-        setDigest(data);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-      } finally {
-        setLoading(false);
+  const fetchDigest = async (forceRefresh = false) => {
+    try {
+      setLoading(true);
+      const refreshParam = forceRefresh ? '?refresh=true' : '';
+      const response = await fetch(`/api/digest${refreshParam}`, {
+        cache: forceRefresh ? 'no-store' : 'default',
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch digest");
       }
+      const data: DigestResponse = await response.json();
+      setDigest(data);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoading(false);
     }
+  };
 
+  useEffect(() => {
     fetchDigest();
   }, []);
 
@@ -149,16 +147,41 @@ export default function Home() {
           style={chatOpen ? { width: `${100 - chatWidth}%`, minWidth: '30%', maxWidth: '70%' } : {}}
         >
           <div className="max-w-4xl mx-auto py-8 px-4">
-        <header className="mb-8">
-          <h1 className="text-4xl font-serif text-[#1a1a1a] mb-1 italic">
-            tinget.ai
-          </h1>
-          {digest && (
-            <p className="text-sm text-[#666]">
-              {formatDate(digest.date)}
-            </p>
-          )}
-        </header>
+                <header className="mb-8">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h1 className="text-4xl font-serif text-[#1a1a1a] mb-1 italic">
+                        tinget.ai
+                      </h1>
+                      {digest && (
+                        <p className="text-sm text-[#666]">
+                          {formatDate(digest.date)}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => fetchDigest(true)}
+                      disabled={loading}
+                      className="px-4 py-2 text-sm font-medium text-[#0066cc] bg-white border border-[#0066cc] rounded-lg hover:bg-[#f0f7ff] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      title="Oppdater innhold"
+                    >
+                      <svg
+                        className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                      </svg>
+                      {loading ? 'Oppdaterer...' : 'Oppdater'}
+                    </button>
+                  </div>
+                </header>
 
         {digest && digest.items.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-8 text-center">
