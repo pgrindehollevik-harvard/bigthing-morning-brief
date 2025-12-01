@@ -37,15 +37,27 @@ export async function fetchRecentDocuments(): Promise<StortingetDocument[]> {
     const now = new Date();
     const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
+    console.log(`Filtering documents from ${twoWeeksAgo.toISOString()} to ${now.toISOString()}`);
+
     const filteredSaker = saker
       .filter((sak: any) => {
         // Use sist_oppdatert_dato (last updated date) for filtering
         const dateStr = sak.sist_oppdatert_dato || sak.respons_dato_tid;
         if (!dateStr) return false;
         const docDate = new Date(dateStr);
-        return !isNaN(docDate.getTime()) && docDate >= twoWeeksAgo;
+        const isValid = !isNaN(docDate.getTime()) && docDate >= twoWeeksAgo;
+        if (isValid) {
+          console.log(`Document ${sak.id}: ${dateStr} (${docDate.toISOString()}) - INCLUDED`);
+        }
+        return isValid;
       })
-      .slice(0, 5); // Limit to 5 documents
+      .sort((a: any, b: any) => {
+        // Sort by date descending (most recent first)
+        const dateA = new Date(a.sist_oppdatert_dato || a.respons_dato_tid || 0);
+        const dateB = new Date(b.sist_oppdatert_dato || b.respons_dato_tid || 0);
+        return dateB.getTime() - dateA.getTime();
+      })
+      .slice(0, 10); // Increase limit to 10 to get more documents across the 14-day window
 
     // Map with async to fetch full sak details including grunnlag, referat, etc.
     const recentDocuments = await Promise.all(
