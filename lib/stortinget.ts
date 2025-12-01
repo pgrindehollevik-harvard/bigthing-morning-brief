@@ -33,9 +33,9 @@ export async function fetchRecentDocuments(): Promise<StortingetDocument[]> {
     // Handle both single sak and array of saker
     const saker = Array.isArray(sakerListe.sak) ? sakerListe.sak : [sakerListe.sak];
 
-    // Filter documents from last 7 days
+    // Filter documents from last 2 weeks (14 days)
     const now = new Date();
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
     const filteredSaker = saker
       .filter((sak: any) => {
@@ -43,7 +43,7 @@ export async function fetchRecentDocuments(): Promise<StortingetDocument[]> {
         const dateStr = sak.sist_oppdatert_dato || sak.respons_dato_tid;
         if (!dateStr) return false;
         const docDate = new Date(dateStr);
-        return !isNaN(docDate.getTime()) && docDate >= weekAgo;
+        return !isNaN(docDate.getTime()) && docDate >= twoWeeksAgo;
       })
       .slice(0, 5); // Limit to 5 documents
 
