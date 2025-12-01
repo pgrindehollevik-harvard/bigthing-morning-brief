@@ -128,13 +128,42 @@ URL: ${doc.url}
       max_tokens: 2000, // Limit tokens for faster response
     });
 
-    const content = completion.choices[0]?.message?.content;
-    if (!content) {
-      throw new Error("No response from OpenAI");
-    }
+        const content = completion.choices[0]?.message?.content;
+        if (!content) {
+          throw new Error("No response from OpenAI");
+        }
 
-    // Parse JSON response
-    const parsed = JSON.parse(content);
+        // Parse JSON response with error handling
+        let parsed;
+        try {
+          // Try to extract JSON from markdown code blocks if present
+          let jsonContent = content.trim();
+          const jsonMatch = jsonContent.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+          if (jsonMatch) {
+            jsonContent = jsonMatch[1];
+          }
+          
+          parsed = JSON.parse(jsonContent);
+        } catch (parseError) {
+          console.error("JSON parse error:", parseError);
+          console.error("Content preview:", content.substring(0, 500));
+          console.error("Content length:", content.length);
+          // Try to fix common JSON issues
+          try {
+            // Remove trailing commas
+            let fixedContent = content.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
+            // Try to extract just the JSON object if there's extra text
+            const jsonObjectMatch = fixedContent.match(/\{[\s\S]*\}/);
+            if (jsonObjectMatch) {
+              fixedContent = jsonObjectMatch[0];
+            }
+            parsed = JSON.parse(fixedContent);
+          } catch (retryError) {
+            console.error("Retry parse also failed:", retryError);
+            // Fall back to creating basic summaries from document data
+            throw new Error(`Failed to parse OpenAI JSON response: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+          }
+        }
 
     // Handle both single object and array responses
     let items: DigestItem[];
