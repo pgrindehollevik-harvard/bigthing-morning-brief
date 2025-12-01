@@ -159,6 +159,15 @@ URL: ${caseItem.url}
 
 ${cases.length > 0 ? `Brukeren har lagt til følgende saker i kontekst:\n${casesContext}` : "Brukeren har ikke lagt til noen saker ennå, men du kan hjelpe med generelle spørsmål om norsk politikk og Stortinget."}
 
+KRITISK - KILDEBRUK OG SITATER:
+- Du MÅ kun bruke informasjon fra sakene som er lagt til i kontekst over
+- Du MÅ alltid sitere kildene når du refererer til informasjon fra sakene
+- Bruk markdown-lenker for å sitere: [Kilde: Tittel](URL)
+- SI ALDRI at du har brukt kilder du ikke har tilgang til
+- SI ALDRI at du har brukt artikler, rapporter eller dokumenter som ikke er nevnt i konteksten
+- Hvis du refererer til informasjon, må du alltid inkludere lenken til den aktuelle saken
+- Når du svarer på spørsmål om kilder, list opp de faktiske URL-ene fra sakene i kontekst
+
 Din rolle og ekspertise:
 - Du er en politisk analytiker med dyp forståelse av norsk politikk, Stortingets prosesser og offentlig forvaltning
 - Du gir konkrete, handlingsrettede innsikter - ikke generiske observasjoner
@@ -172,7 +181,8 @@ Din kommunikasjonsstil:
 - Start direkte med innholdet, ikke disclaimers eller unnskyldninger
 - Bruk markdown for struktur (overskrifter, lister, **fet tekst** for viktige poeng)
 - Når du analyserer saker, vær konkret: hva betyr dette? Hvem påvirkes? Hva er neste steg?
-- Identifiser politiske dimensjoner: partipolitiske linjer, interessekonflikter, praktiske konsekvenser`;
+- Identifiser politiske dimensjoner: partipolitiske linjer, interessekonflikter, praktiske konsekvenser
+- Alltid inkluder kildelenker nederst i svaret ditt som en "Kilder:"-seksjon`;
 
     // Add web search results if available
     if (webSearchAvailable && webSearchResults && webSearchResults.length > 50) {
@@ -188,8 +198,9 @@ ABSOLUTT FORBUDT:
 MÅ Gjøre:
 - Start svaret med at du har funnet oppdatert informasjon
 - Bruk søkeresultatene aktivt i svaret
-- Referer til kildene med lenker
+- Referer til kildene med lenker fra søkeresultatene
 - Presenter informasjonen som fersk og relevant
+- Inkluder lenker fra både søkeresultatene OG sakene i kontekst
 
 Web søkeresultater (OPPDATERT INFORMASJON):
 ${webSearchResults}
@@ -198,6 +209,16 @@ Bruk denne informasjonen for å gi et detaljert, oppdatert svar.`;
     } else if (shouldSearch && !webSearchAvailable) {
       // Even if search failed, don't let AI say it can't search
       systemPrompt += `\n\nMERK: Brukeren ba om web søk. Hvis søkeresultater mangler, baser deg på sakene i kontekst, men si IKKE at du ikke kan søke.`;
+    }
+    
+    // Always add requirement to cite sources from cases
+    if (cases.length > 0) {
+      const caseUrls = cases.map((c: DigestItem) => `- [${c.title}](${c.url})`).join('\n');
+      systemPrompt += `\n\nVIKTIG - KILDEHÅNDTERING:
+Når du svarer, MÅ du alltid inkludere en "Kilder:"-seksjon nederst med lenker til sakene du har brukt:
+${caseUrls}
+
+Dette gjelder ALLTID, uavhengig av om du også har web søkeresultater.`;
     }
 
     const completion = await openai.chat.completions.create({
