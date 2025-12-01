@@ -163,7 +163,7 @@ export default function Home() {
         {digest && digest.items.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-8 text-center">
             <p className="text-gray-600">
-              Ingen nye dokumenter de siste 7 dagene.
+                      Ingen nye dokumenter de siste 2 ukene.
             </p>
           </div>
         ) : (

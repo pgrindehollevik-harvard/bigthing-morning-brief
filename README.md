@@ -4,7 +4,7 @@ A Next.js application that automatically fetches recent documents from the Norwe
 
 ## Features
 
-- 📄 **Automatic Document Fetching**: Retrieves recent documents from the Stortinget API (last 7 days)
+- 📄 **Automatic Document Fetching**: Retrieves recent documents from the Stortinget API (last 2 weeks)
 - 🤖 **AI-Powered Summaries**: Uses OpenAI GPT-4o-mini to generate concise Norwegian summaries
 - 🎨 **Party Color Coding**: Visual tags with official party colors for representatives
 - 🏛️ **Source Attribution**: Shows department names for government proposals and individual representatives for member proposals
@@ -65,7 +65,7 @@ A Next.js application that automatically fetches recent documents from the Norwe
 ## How It Works
 
 1. The app fetches recent documents from the Stortinget API (XML format)
-2. Documents are parsed and filtered to the last 7 days
+2. Documents are parsed and filtered to the last 2 weeks
 3. Each document is sent to OpenAI for summarization in Norwegian
 4. Summaries include:
    - A brief overview (2-4 sentences)
@@ -131,7 +131,7 @@ npm run lint
 ## Notes
 
 - The Stortinget API returns XML format, which is automatically parsed
-- Documents are filtered to the last 7 days to ensure relevance
+- Documents are filtered to the last 2 weeks to ensure relevance
 - The app handles missing or incomplete data gracefully
 - All summaries are generated in Norwegian (Bokmål)
 
