@@ -53,21 +53,23 @@ URL: ${caseItem.url}
       content: msg.content,
     }));
 
-    // Check if user is asking for web search or news
-    // Also trigger search if user asks about news, articles, or if they explicitly mention searching
-    const searchKeywords = /(nyheter|news|søk|finn|hva skjer|oppdatert|recent|latest|nylig|siste|internett|avis|avisene|artikkel|artikler|google|nettet|nettside|nettsted)/i;
-    const needsWebSearch = searchKeywords.test(message) || 
-                          message.toLowerCase().includes("søk") ||
-                          message.toLowerCase().includes("search") ||
-                          message.toLowerCase().includes("nyheter");
+    // Check if user is asking for web search or news - be very aggressive
+    const messageLower = message.toLowerCase();
+    const searchKeywords = /(nyheter|news|søk|finn|hva skjer|oppdatert|recent|latest|nylig|siste|internett|avis|avisene|artikkel|artikler|google|nettet|nettside|nettsted|sanntid|realtid|oppdatert informasjon|nye saker|nye artikler)/i;
     
-    // ALWAYS try to search if:
-    // 1. User explicitly asks for search/news
-    // 2. User asks about cases and we have cases in context (likely wants updated info)
-    // 3. Message is a question about the cases
-    const isQuestion = message.trim().endsWith("?");
-    const shouldSearch = needsWebSearch || 
-                        (cases.length > 0 && (isQuestion || /(hva|what|om|about|informasjon|information|kan|can)/i.test(message)));
+    // Check for explicit search requests
+    const explicitSearch = searchKeywords.test(message) || 
+                          messageLower.includes("finn nyheter") ||
+                          messageLower.includes("søk etter") ||
+                          messageLower.includes("søk om") ||
+                          messageLower.includes("finn saker") ||
+                          messageLower.includes("finn artikler") ||
+                          messageLower.includes("hva skjer med") ||
+                          messageLower.includes("nyheter om");
+    
+    // Also search if user asks about "disse sakene" with news/search context
+    const shouldSearch = explicitSearch || 
+                        (messageLower.includes("disse sakene") && (messageLower.includes("nyheter") || messageLower.includes("finn") || messageLower.includes("søk")));
     
     let webSearchResults = "";
     let webSearchAvailable = false;
@@ -75,18 +77,29 @@ URL: ${caseItem.url}
     
     if (shouldSearch) {
       // Extract search terms from message and cases
-      const searchTerms = cases.length > 0
-        ? cases.map((c: DigestItem) => `${c.title} ${c.tema || ""}`).join(" ")
-        : message;
+      let searchTerms = "";
+      if (cases.length > 0) {
+        // Use case titles and temas for search
+        searchTerms = cases.map((c: DigestItem) => {
+          // Extract key terms from title (remove "Representantforslag om" etc.)
+          const cleanTitle = c.title
+            .replace(/^Representantforslag om /i, "")
+            .replace(/^Proposisjon /i, "")
+            .substring(0, 100); // Limit length
+          return `${cleanTitle} ${c.tema || ""}`;
+        }).join(" ");
+      } else {
+        searchTerms = message;
+      }
+      
+      // Build search query
+      const searchQuery = `${searchTerms} norge nyheter 2025`.trim();
       
       try {
-        const searchQuery = cases.length > 0 
-          ? `${searchTerms} norge nyheter`
-          : `${message} norge nyheter`;
-        
         console.log("=".repeat(50));
         console.log("🔍 WEB SEARCH TRIGGERED");
-        console.log("Query:", searchQuery);
+        console.log("Original message:", message);
+        console.log("Search query:", searchQuery);
         console.log("TAVILY_API_KEY exists:", !!process.env.TAVILY_API_KEY);
         console.log("TAVILY_API_KEY length:", process.env.TAVILY_API_KEY?.length || 0);
         
@@ -94,7 +107,10 @@ URL: ${caseItem.url}
         webSearchResults = await searchWeb(searchQuery, 5);
         const searchDuration = Date.now() - searchStartTime;
         
-        webSearchAvailable = !!webSearchResults && !webSearchResults.includes("[Web search ikke konfigurert");
+        webSearchAvailable = !!webSearchResults && 
+                            webSearchResults.length > 0 && 
+                            !webSearchResults.includes("[Web search ikke konfigurert") &&
+                            !webSearchResults.includes("Web search ikke konfigurert");
         
         searchDebugInfo = {
           triggered: true,
@@ -109,12 +125,14 @@ URL: ${caseItem.url}
         console.log("Search completed in", searchDuration, "ms");
         console.log("Results available:", webSearchAvailable);
         console.log("Results length:", webSearchResults.length);
-        console.log("Results preview:", webSearchResults.substring(0, 300));
+        if (webSearchResults.length > 0) {
+          console.log("Results preview:", webSearchResults.substring(0, 300));
+        }
         console.log("=".repeat(50));
         
         if (webSearchResults && !webSearchAvailable) {
-          console.log("⚠️ Web search returned configuration message");
-        } else if (webSearchResults) {
+          console.log("⚠️ Web search returned configuration message or empty");
+        } else if (webSearchResults && webSearchAvailable) {
           console.log("✅ Web search successful!");
         } else {
           console.log("❌ Web search returned empty results");
@@ -126,10 +144,14 @@ URL: ${caseItem.url}
           error: error instanceof Error ? error.message : String(error),
         };
         webSearchResults = "";
+        webSearchAvailable = false;
       }
     } else {
-      console.log("ℹ️ Web search not triggered (no keywords detected)");
-      searchDebugInfo = { triggered: false, reason: "No search keywords in message" };
+      console.log("ℹ️ Web search not triggered");
+      console.log("  - Message:", message);
+      console.log("  - Explicit search:", explicitSearch);
+      console.log("  - Should search:", shouldSearch);
+      searchDebugInfo = { triggered: false, reason: "No search keywords detected in message" };
     }
 
     // System prompt - Expert policy analyst tone
@@ -153,24 +175,29 @@ Din kommunikasjonsstil:
 - Identifiser politiske dimensjoner: partipolitiske linjer, interessekonflikter, praktiske konsekvenser`;
 
     // Add web search results if available
-    if (webSearchAvailable && webSearchResults) {
-      systemPrompt += `\n\nKRITISK VIKTIG - DU HAR TILGANG TIL WEB SØK:
-Du HAR nettopp utført en web søk og har oppdaterte søkeresultater nedenfor. Dette er SANNTIDS informasjon fra internett.
+    if (webSearchAvailable && webSearchResults && webSearchResults.length > 50) {
+      systemPrompt += `\n\nKRITISK VIKTIG - DU HAR NETTOPP SØKT PÅ INTERNETT:
+Du HAR utført et web søk og har oppdaterte søkeresultater nedenfor. Dette er SANNTIDS informasjon fra internett.
 
-VIKTIGE REGLER:
-1. SI ALDRI at du ikke kan søke på internett - du kan og har nettopp gjort det!
-2. SI ALDRI at du ikke har tilgang til oppdatert informasjon - du har det nedenfor!
-3. SI ALDRI at din kunnskap er fra oktober 2023 - du har fersk informasjon fra søket!
-4. BRUK søkeresultatene aktivt i svaret ditt
-5. REFERER til kildene med lenker
-6. PRESENTER informasjonen som om du nettopp fant den (fordi du gjorde det!)
+ABSOLUTT FORBUDT:
+- SI ALDRI "Jeg har ikke mulighet til å søke" - du har nettopp gjort det!
+- SI ALDRI "Jeg kan ikke søke etter sanntidsnyheter" - du kan og har gjort det!
+- SI ALDRI "Jeg anbefaler å bruke nyhetskilder" - du HAR allerede funnet nyheter!
+- SI ALDRI at din kunnskap er fra oktober 2023 - du har fersk informasjon!
 
-Web søkeresultater (FRESK INFORMASJON):
+MÅ Gjøre:
+- Start svaret med at du har funnet oppdatert informasjon
+- Bruk søkeresultatene aktivt i svaret
+- Referer til kildene med lenker
+- Presenter informasjonen som fersk og relevant
+
+Web søkeresultater (OPPDATERT INFORMASJON):
 ${webSearchResults}
 
-Når du svarer, start med å si at du har funnet oppdatert informasjon, og bruk deretter søkeresultatene for å gi et detaljert svar.`;
+Bruk denne informasjonen for å gi et detaljert, oppdatert svar.`;
     } else if (shouldSearch && !webSearchAvailable) {
-      systemPrompt += `\n\nMERK: Brukeren ba om web søk, men søkeresultater er ikke tilgjengelig. Fortell brukeren at du baserer deg på sakene i kontekst.`;
+      // Even if search failed, don't let AI say it can't search
+      systemPrompt += `\n\nMERK: Brukeren ba om web søk. Hvis søkeresultater mangler, baser deg på sakene i kontekst, men si IKKE at du ikke kan søke.`;
     }
 
     const completion = await openai.chat.completions.create({
@@ -188,7 +215,6 @@ Når du svarer, start med å si at du har funnet oppdatert informasjon, og bruk 
     // Include debug info in development
     const debugInfo = process.env.NODE_ENV === "development" ? {
       search: searchDebugInfo,
-      needsWebSearch,
       shouldSearch,
       webSearchAvailable,
       webSearchResultsLength: webSearchResults.length,
