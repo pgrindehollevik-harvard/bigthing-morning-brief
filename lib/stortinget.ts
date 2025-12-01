@@ -33,11 +33,11 @@ export async function fetchRecentDocuments(): Promise<StortingetDocument[]> {
     // Handle both single sak and array of saker
     const saker = Array.isArray(sakerListe.sak) ? sakerListe.sak : [sakerListe.sak];
 
-    // Filter documents from last 2 weeks (14 days)
+    // Filter documents from last 7 days
     const now = new Date();
-    const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    console.log(`Filtering documents from ${twoWeeksAgo.toISOString()} to ${now.toISOString()}`);
+    console.log(`Filtering documents from ${weekAgo.toISOString()} to ${now.toISOString()}`);
 
     const filteredSaker = saker
       .filter((sak: any) => {
@@ -45,7 +45,7 @@ export async function fetchRecentDocuments(): Promise<StortingetDocument[]> {
         const dateStr = sak.sist_oppdatert_dato || sak.respons_dato_tid;
         if (!dateStr) return false;
         const docDate = new Date(dateStr);
-        const isValid = !isNaN(docDate.getTime()) && docDate >= twoWeeksAgo;
+        const isValid = !isNaN(docDate.getTime()) && docDate >= weekAgo;
         if (isValid) {
           console.log(`Document ${sak.id}: ${dateStr} (${docDate.toISOString()}) - INCLUDED`);
         }
@@ -56,8 +56,8 @@ export async function fetchRecentDocuments(): Promise<StortingetDocument[]> {
         const dateA = new Date(a.sist_oppdatert_dato || a.respons_dato_tid || 0);
         const dateB = new Date(b.sist_oppdatert_dato || b.respons_dato_tid || 0);
         return dateB.getTime() - dateA.getTime();
-      })
-      .slice(0, 10); // Increase limit to 10 to get more documents across the 14-day window
+      });
+    // No limit - show ALL documents from the past 7 days
 
     // Map with async to fetch full sak details including grunnlag, referat, etc.
     const recentDocuments = await Promise.all(
