@@ -116,7 +116,7 @@ URL: ${doc.url}
       messages: [
         {
           role: "system",
-          content: "Du er en assistent som oppsummerer offentlige dokumenter fra Stortinget på norsk.",
+          content: "Du er en assistent som oppsummerer offentlige dokumenter fra Stortinget på norsk. Du MÅ svare med gyldig JSON. Unngå linjeskift i JSON-strenger, bruk \\n for nye linjer.",
         },
         {
           role: "user",
@@ -125,7 +125,7 @@ URL: ${doc.url}
       ],
       response_format: { type: "json_object" },
       temperature: 0.7,
-      max_tokens: 2000, // Limit tokens for faster response
+      max_tokens: 3000, // Increased to handle longer responses
     });
 
         const content = completion.choices[0]?.message?.content;
