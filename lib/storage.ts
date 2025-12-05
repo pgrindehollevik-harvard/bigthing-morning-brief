@@ -114,12 +114,12 @@ class VercelKVStorage implements StorageAdapter {
   private kv: any;
 
   constructor() {
-    // Lazy load @vercel/kv to avoid issues in local dev
     try {
-      // @vercel/kv will be available in production
-      this.kv = require('@vercel/kv');
+      // Import @vercel/kv - it handles env vars automatically
+      const { kv } = require('@vercel/kv');
+      this.kv = kv;
     } catch (error) {
-      throw new Error('Vercel KV not available. Install @vercel/kv for production use.');
+      throw new Error('Vercel KV not available. Install @vercel/kv and set KV_REST_API_URL and KV_REST_API_TOKEN.');
     }
   }
 
@@ -135,42 +135,84 @@ class VercelKVStorage implements StorageAdapter {
     return `pdf:${eksportId}`;
   }
 
+  private dateIndexKey(date: string): string {
+    // Format: YYYY-MM-DD
+    return `docs:date:${date}`;
+  }
+
   async getDocument(sakId: string): Promise<StortingetDocument | null> {
     const data = await this.kv.get(this.docKey(sakId));
-    return data ? JSON.parse(data) : null;
+    // @vercel/kv automatically handles JSON, but we'll be explicit
+    return data ? (typeof data === 'string' ? JSON.parse(data) : data) : null;
   }
 
   async saveDocument(doc: StortingetDocument): Promise<void> {
     if (!doc.sakId) return;
-    await this.kv.set(this.docKey(doc.sakId), JSON.stringify(doc));
+    
+    // Save document
+    await this.kv.set(this.docKey(doc.sakId), doc);
+    
+    // Maintain date index for efficient range queries
+    const dateStr = doc.date.split('T')[0]; // YYYY-MM-DD
+    const dateIndexKey = this.dateIndexKey(dateStr);
+    
+    // Add sakId to the date index (use a set)
+    await this.kv.sadd(dateIndexKey, doc.sakId);
+    
+    // Set expiration on date index (keep for 30 days)
+    await this.kv.expire(dateIndexKey, 30 * 24 * 60 * 60);
   }
 
   async getDocumentsByDateRange(startDate: Date, endDate: Date): Promise<StortingetDocument[]> {
-    // Vercel KV doesn't support range queries directly
-    // We'll need to maintain an index or scan (for MVP, we can scan)
-    // For better performance, maintain a date index: `docs:date:YYYY-MM-DD`
     const docs: StortingetDocument[] = [];
-    // This is a simplified version - in production, maintain date indexes
-    // For now, we'll fetch from API and cache, then filter
-    return docs;
+    const currentDate = new Date(startDate);
+    
+    // Iterate through each date in range and get documents from index
+    while (currentDate <= endDate) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      const dateIndexKey = this.dateIndexKey(dateStr);
+      
+      // Get all sakIds for this date
+      const sakIds = await this.kv.smembers(dateIndexKey);
+      
+      if (sakIds && sakIds.length > 0) {
+        // Fetch all documents for this date in parallel
+        const dateDocs = await Promise.all(
+          sakIds.map((sakId: string) => this.getDocument(sakId))
+        );
+        
+        // Filter out nulls and add to results
+        docs.push(...dateDocs.filter((doc): doc is StortingetDocument => doc !== null));
+      }
+      
+      // Move to next day
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    // Sort by date descending
+    return docs.sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateB.getTime() - dateA.getTime();
+    });
   }
 
   async getSummary(sakId: string): Promise<DigestItem | null> {
     const data = await this.kv.get(this.summaryKey(sakId));
-    return data ? JSON.parse(data) : null;
+    return data ? (typeof data === 'string' ? JSON.parse(data) : data) : null;
   }
 
   async saveSummary(sakId: string, summary: DigestItem): Promise<void> {
-    await this.kv.set(this.summaryKey(sakId), JSON.stringify(summary));
+    await this.kv.set(this.summaryKey(sakId), summary);
   }
 
   async getPdfChunks(eksportId: string): Promise<string[] | null> {
     const data = await this.kv.get(this.pdfChunksKey(eksportId));
-    return data ? JSON.parse(data) : null;
+    return data ? (typeof data === 'string' ? JSON.parse(data) : data) : null;
   }
 
   async savePdfChunks(eksportId: string, chunks: string[]): Promise<void> {
-    await this.kv.set(this.pdfChunksKey(eksportId), JSON.stringify(chunks));
+    await this.kv.set(this.pdfChunksKey(eksportId), chunks);
   }
 }
 
@@ -184,10 +226,13 @@ export function getStorage(): StorageAdapter {
   if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
     try {
       storageInstance = new VercelKVStorage();
+      console.log('[Storage] Using Vercel KV storage');
       return storageInstance;
-    } catch (error) {
-      console.warn('Vercel KV not available, falling back to in-memory storage');
+    } catch (error: any) {
+      console.warn('[Storage] Vercel KV not available, falling back to in-memory storage:', error.message);
     }
+  } else {
+    console.log('[Storage] KV env vars not set, using in-memory storage');
   }
 
   // Fall back to in-memory storage for local dev
