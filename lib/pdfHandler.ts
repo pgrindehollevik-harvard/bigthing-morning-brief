@@ -86,10 +86,17 @@ export async function fetchPdf(eksportId: string): Promise<Buffer | null> {
  */
 export async function parsePdf(pdfBuffer: Buffer): Promise<string> {
   try {
-    // Dynamic import to avoid issues if pdf-parse isn't installed
-    // @ts-ignore - pdf-parse may not have types
-    const pdfParse = await import('pdf-parse');
-    const data = await pdfParse.default(pdfBuffer);
+    // pdf-parse v2.4+ exports PDFParse as a named export
+    const pdfParseModule = await import('pdf-parse');
+    // Use PDFParse class from the module
+    const PDFParse = (pdfParseModule as any).PDFParse;
+    if (!PDFParse) {
+      throw new Error('PDFParse not found in pdf-parse module');
+    }
+    
+    // PDFParse constructor expects { data: Buffer }
+    const parser = new PDFParse({ data: pdfBuffer });
+    const data = await parser.parse();
     return data.text || '';
   } catch (error: any) {
     // If module not found, provide helpful error
