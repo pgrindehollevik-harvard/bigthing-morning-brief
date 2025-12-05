@@ -237,35 +237,27 @@ export default function Home() {
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => setLanguage(language === "no" ? "en" : "no")}
-                        className="px-3 py-1.5 text-sm font-medium text-[#666] bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    <button
+                      onClick={() => fetchDigest(true)}
+                      disabled={loading}
+                      className="px-4 py-2 text-sm font-medium text-[#0066cc] bg-white border border-[#0066cc] rounded-lg hover:bg-[#f0f7ff] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      title="Oppdater innhold"
+                    >
+                      <svg
+                        className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
                       >
-                        {language === "no" ? "EN" : "NO"}
-                      </button>
-                      <button
-                        onClick={() => fetchDigest(true)}
-                        disabled={loading}
-                        className="px-4 py-2 text-sm font-medium text-[#0066cc] bg-white border border-[#0066cc] rounded-lg hover:bg-[#f0f7ff] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                        title={language === "no" ? "Oppdater innhold" : "Refresh content"}
-                      >
-                        <svg
-                          className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                          />
-                        </svg>
-                        {loading ? t.refreshing : t.refresh}
-                      </button>
-                    </div>
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                      </svg>
+                      {loading ? t.refreshing : t.refresh}
+                    </button>
                   </div>
                 </header>
 
