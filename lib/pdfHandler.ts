@@ -87,12 +87,17 @@ export async function fetchPdf(eksportId: string): Promise<Buffer | null> {
 export async function parsePdf(pdfBuffer: Buffer): Promise<string> {
   try {
     // Dynamic import to avoid issues if pdf-parse isn't installed
+    // @ts-ignore - pdf-parse may not have types
     const pdfParse = await import('pdf-parse');
     const data = await pdfParse.default(pdfBuffer);
     return data.text || '';
-  } catch (error) {
+  } catch (error: any) {
+    // If module not found, provide helpful error
+    if (error.code === 'MODULE_NOT_FOUND' || error.message?.includes('pdf-parse')) {
+      throw new Error('pdf-parse module not found. Install it: npm install pdf-parse');
+    }
     console.error('Error parsing PDF:', error);
-    throw new Error('Failed to parse PDF. Install pdf-parse: npm install pdf-parse');
+    throw new Error(`Failed to parse PDF: ${error.message || 'Unknown error'}`);
   }
 }
 
