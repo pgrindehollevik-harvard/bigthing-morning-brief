@@ -364,7 +364,29 @@ KRITISK - IKKE VÆR GENERISK:
 
     // Add web search results if available
     if (webSearchAvailable && webSearchResults && webSearchResults.length > 50) {
-      systemPrompt += `\n\nKRITISK VIKTIG - DU HAR NETTOPP SØKT PÅ INTERNETT:
+      if (isEnglish) {
+        systemPrompt += `\n\nCRITICAL - YOU HAVE JUST SEARCHED THE WEB:
+You HAVE performed a web search and have updated search results below. This is REAL-TIME information from the internet.
+
+ABSOLUTELY FORBIDDEN:
+- NEVER say "I don't have the ability to search" - you just did it!
+- NEVER say "I cannot search for real-time news" - you can and have done it!
+- NEVER say "I recommend using news sources" - you HAVE already found news!
+- NEVER say your knowledge is from October 2023 - you have fresh information!
+
+MUST DO:
+- Start your response by saying you found updated information
+- Use the search results actively in your response
+- Reference the sources with links from the search results
+- Present the information as fresh and relevant
+- Include links from both search results AND cases in context
+
+Web search results (UPDATED INFORMATION):
+${webSearchResults}
+
+Use this information to provide a detailed, updated response.`;
+      } else {
+        systemPrompt += `\n\nKRITISK VIKTIG - DU HAR NETTOPP SØKT PÅ INTERNETT:
 Du HAR utført et web søk og har oppdaterte søkeresultater nedenfor. Dette er SANNTIDS informasjon fra internett.
 
 ABSOLUTT FORBUDT:
