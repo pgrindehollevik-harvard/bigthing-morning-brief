@@ -220,7 +220,7 @@ export default function ChatWindow({
             {t.title}
           </h2>
           <p className="text-xs text-[#666] mt-0.5">
-            {cases.length} {cases.length === 1 ? t.case : t.casesInContext.split(' ')[0]} {t.casesInContext.split(' ').slice(1).join(' ')}
+            {cases.length} {cases.length === 1 ? t.case : t.casesInContext.split(' ')[0]} {language === "no" ? "i kontekst" : "in context"}
           </p>
         </div>
         <button
