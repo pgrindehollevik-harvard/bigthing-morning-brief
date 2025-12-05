@@ -222,17 +222,29 @@ let storageInstance: StorageAdapter | null = null;
 export function getStorage(): StorageAdapter {
   if (storageInstance) return storageInstance;
 
-  // Use Vercel KV in production if available
-  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+  // Use Vercel KV/Upstash Redis in production if available
+  // Support multiple env var names (Vercel KV, Upstash, etc.)
+  const kvUrl = process.env.KV_REST_API_URL || 
+                process.env.UPSTASH_REDIS_REST_URL ||
+                process.env.REDIS_REST_API_URL;
+  const kvToken = process.env.KV_REST_API_TOKEN || 
+                  process.env.UPSTASH_REDIS_REST_TOKEN ||
+                  process.env.REDIS_REST_API_TOKEN;
+  
+  if (kvUrl && kvToken) {
+    // Set the env vars that @vercel/kv expects
+    if (!process.env.KV_REST_API_URL) process.env.KV_REST_API_URL = kvUrl;
+    if (!process.env.KV_REST_API_TOKEN) process.env.KV_REST_API_TOKEN = kvToken;
+    
     try {
       storageInstance = new VercelKVStorage();
-      console.log('[Storage] Using Vercel KV storage');
+      console.log('[Storage] Using Vercel KV/Upstash Redis storage');
       return storageInstance;
     } catch (error: any) {
-      console.warn('[Storage] Vercel KV not available, falling back to in-memory storage:', error.message);
+      console.warn('[Storage] KV/Redis not available, falling back to in-memory storage:', error.message);
     }
   } else {
-    console.log('[Storage] KV env vars not set, using in-memory storage');
+    console.log('[Storage] KV/Redis env vars not set, using in-memory storage');
   }
 
   // Fall back to in-memory storage for local dev

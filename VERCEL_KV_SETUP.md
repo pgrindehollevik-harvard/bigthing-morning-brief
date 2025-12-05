@@ -9,30 +9,43 @@ npm install @vercel/kv
 
 ### 2. Create KV Database in Vercel
 
+**Important:** Vercel KV is now available through the Marketplace, not as built-in storage.
+
 **Option A: Via Vercel Dashboard (Recommended)**
 1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
 2. Select your project
 3. Go to **Storage** tab
-4. Click **Create Database**
-5. Select **KV** (Redis)
-6. Name it (e.g., "tinget-storage")
-7. Select region (choose closest to your users)
-8. Click **Create**
+4. Click **Create New** or **Browse Storage**
+5. In the Marketplace section, select **Upstash** (Serverless Redis/KV)
+   - Or choose **Redis** (Serverless Redis)
+6. Follow the setup wizard:
+   - Name it (e.g., "tinget-storage")
+   - Select region (choose closest to your users)
+   - Choose plan (Free tier available)
+7. Click **Create** or **Continue**
 
-**Option B: Via Vercel CLI**
-```bash
-vercel kv create tinget-storage
-```
+**Option B: Direct Upstash Setup**
+1. Go to [Upstash Console](https://console.upstash.com/)
+2. Create a new Redis database
+3. Copy the REST API URL and token
+4. Add to Vercel environment variables manually
 
 ### 3. Environment Variables
 
-Vercel automatically adds these to your project:
-- `KV_REST_API_URL` - Your KV database REST API URL
-- `KV_REST_API_TOKEN` - Your KV database access token
+**If using Marketplace provider (Upstash/Redis):**
+The provider may auto-add env vars, or you may need to add them manually:
 
-**Verify in Vercel Dashboard:**
-- Go to your project → Settings → Environment Variables
-- You should see both `KV_REST_API_URL` and `KV_REST_API_TOKEN`
+1. Go to your Marketplace database (Upstash/Redis) in Vercel
+2. Find the **Connection** or **.env** section
+3. Copy the values:
+   - `UPSTASH_REDIS_REST_URL` or `KV_REST_API_URL`
+   - `UPSTASH_REDIS_REST_TOKEN` or `KV_REST_API_TOKEN`
+
+4. Add to Vercel project:
+   - Go to your project → Settings → Environment Variables
+   - Add the variables (or they may be auto-added)
+
+**Note:** We need to map these to `KV_REST_API_URL` and `KV_REST_API_TOKEN` for our code to work.
 
 ### 4. Local Testing
 
