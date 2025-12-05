@@ -57,8 +57,11 @@ Kilde: ${caseItem.source?.type === "regjering" ? caseItem.source.department : ca
 URL: ${caseItem.url}
 `;
             
-            // Add full document context if available
+            // Add full document context if available - structured for better AI understanding
             if (fullDoc) {
+              context += `\n=== DETALJERT INFORMASJON ===\n`;
+              
+              // Administrative info
               if (fullDoc.departement) {
                 context += `Fra: ${fullDoc.departement}\n`;
               }
@@ -68,14 +71,68 @@ URL: ${caseItem.url}
               if (fullDoc.komite) {
                 context += `Komité: ${fullDoc.komite}\n`;
               }
-              if (fullDoc.innstillingstekst) {
-                context += `\nInnstilling:\n${fullDoc.innstillingstekst}\n`;
+              if (fullDoc.dokumentgruppe) {
+                context += `Dokumenttype: ${fullDoc.dokumentgruppe}\n`;
               }
+              if (fullDoc.henvisning) {
+                context += `Henvisning: ${fullDoc.henvisning}\n`;
+              }
+              
+              // Who proposed it
+              if (fullDoc.forslagstiller_liste && fullDoc.forslagstiller_liste.length > 0) {
+                const proposers = fullDoc.forslagstiller_liste.map(r => {
+                  const name = `${r.fornavn} ${r.etternavn}`;
+                  const party = r.parti?.navn || '';
+                  return party ? `${name} (${party})` : name;
+                }).join(', ');
+                context += `Forslagstiller(e): ${proposers}\n`;
+              }
+              
+              // Process timeline
               if (fullDoc.saksgang && fullDoc.saksgang.length > 0) {
-                context += `\nSaksgang:\n${fullDoc.saksgang.map(sg => `- ${sg.steg}${sg.dato ? ` (${sg.dato})` : ''}${sg.beskrivelse ? `: ${sg.beskrivelse}` : ''}`).join('\n')}\n`;
+                context += `\n--- Saksgang ---\n`;
+                fullDoc.saksgang.forEach(sg => {
+                  context += `• ${sg.steg}`;
+                  if (sg.dato) context += ` (${sg.dato})`;
+                  if (sg.komite) context += ` - ${sg.komite}`;
+                  if (sg.beskrivelse) context += `: ${sg.beskrivelse}`;
+                  context += `\n`;
+                });
               }
-              if (fullDoc.fullText) {
-                context += `\nFull tekst:\n${fullDoc.fullText.substring(0, 2000)}${fullDoc.fullText.length > 2000 ? '...' : ''}\n`;
+              
+              // Basis for the case (grunnlag) - very important context
+              if (fullDoc.grunnlag && fullDoc.grunnlag.trim().length > 0) {
+                const grunnlagText = fullDoc.grunnlag.length > 3000 
+                  ? fullDoc.grunnlag.substring(0, 3000) + '...' 
+                  : fullDoc.grunnlag;
+                context += `\n--- Grunnlag for saken ---\n${grunnlagText}\n`;
+              }
+              
+              // Meeting minutes/reports (referat) - important context
+              if (fullDoc.referat && fullDoc.referat.trim().length > 0) {
+                const referatText = fullDoc.referat.length > 2000 
+                  ? fullDoc.referat.substring(0, 2000) + '...' 
+                  : fullDoc.referat;
+                context += `\n--- Referat ---\n${referatText}\n`;
+              }
+              
+              // Committee recommendation
+              if (fullDoc.innstillingstekst && fullDoc.innstillingstekst.trim().length > 0) {
+                const innstillingText = fullDoc.innstillingstekst.length > 2000 
+                  ? fullDoc.innstillingstekst.substring(0, 2000) + '...' 
+                  : fullDoc.innstillingstekst;
+                context += `\n--- Komitéens innstilling ---\n${innstillingText}\n`;
+              }
+              
+              // Full text - prioritize this but be smart about length
+              if (fullDoc.fullText && fullDoc.fullText.trim().length > 0) {
+                // If we have grunnlag/referat, use less of fullText to avoid redundancy
+                const hasOtherContext = fullDoc.grunnlag || fullDoc.referat || fullDoc.innstillingstekst;
+                const maxLength = hasOtherContext ? 3000 : 5000;
+                const fullTextExcerpt = fullDoc.fullText.length > maxLength 
+                  ? fullDoc.fullText.substring(0, maxLength) + '...' 
+                  : fullDoc.fullText;
+                context += `\n--- Full tekst (utdrag) ---\n${fullTextExcerpt}\n`;
               }
               
               // Add relevant PDF chunks if available
@@ -88,7 +145,10 @@ URL: ${caseItem.url}
                 if (eksportIds.length > 0) {
                   const pdfChunks = await getRelevantPdfChunks(eksportIds, message);
                   if (pdfChunks.length > 0) {
-                    context += `\nRelevante utdrag fra dokumenter:\n${pdfChunks.slice(0, 3).join('\n\n---\n\n')}\n`;
+                    context += `\n--- Relevante utdrag fra vedlagte dokumenter ---\n`;
+                    pdfChunks.slice(0, 3).forEach((chunk, idx) => {
+                      context += `\n[Dokument ${idx + 1}]\n${chunk}\n`;
+                    });
                   }
                 }
               }
@@ -235,7 +295,15 @@ Din kommunikasjonsstil:
 - Bruk markdown for struktur (overskrifter, lister, **fet tekst** for viktige poeng)
 - Når du analyserer saker, vær konkret: hva betyr dette? Hvem påvirkes? Hva er neste steg?
 - Identifiser politiske dimensjoner: partipolitiske linjer, interessekonflikter, praktiske konsekvenser
-- Alltid inkluder kildelenker nederst i svaret ditt som en "Kilder:"-seksjon`;
+- Alltid inkluder kildelenker nederst i svaret ditt som en "Kilder:"-seksjon
+
+VIKTIG - HVORDAN DU BRUKER KONTEKSTEN:
+- Bruk ALL informasjon som er tilgjengelig i konteksten: grunnlag, referat, innstillingstekst, full tekst, og PDF-utdrag
+- Når du svarer på spørsmål, ekstraher spesifikke detaljer fra dokumentene - ikke bare generelle beskrivelser
+- Hvis brukeren spør om "hovedpunkter", "konsekvenser", "neste steg" - bruk informasjonen fra saksgang, innstilling og referat
+- Bruk tall, datoer, navn og konkrete fakta fra dokumentene når de er tilgjengelige
+- Hvis grunnlag eller referat inneholder viktig informasjon, inkluder den i svaret ditt
+- Strukturer svaret med tydelige overskrifter når det er relevant (f.eks. "Hovedpunkter", "Konsekvenser", "Neste steg")`;
 
     // Add web search results if available
     if (webSearchAvailable && webSearchResults && webSearchResults.length > 50) {
@@ -281,7 +349,7 @@ Dette gjelder ALLTID, uavhengig av om du også har web søkeresultater.`;
         ...historyMessages,
         { role: "user", content: message },
       ],
-      temperature: 0.7,
+      temperature: 0.5, // Lower temperature for more factual, focused responses
     });
 
     const response = completion.choices[0]?.message?.content || "Beklager, jeg kunne ikke generere et svar.";
