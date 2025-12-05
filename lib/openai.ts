@@ -82,6 +82,11 @@ URL: ${doc.url}
             docText += `\nKomité: ${doc.komite}\n`;
           }
 
+          // Add departement ("Fra") if available
+          if (doc.departement) {
+            docText += `\nFra: ${doc.departement}\n`;
+          }
+
           // Add status if available
           if (doc.status) {
             docText += `\nStatus: ${doc.status}\n`;
@@ -233,33 +238,28 @@ URL: ${doc.url}
 
     // Helper function to extract department from proposisjon
     async function getDepartment(doc: StortingetDocument): Promise<string> {
-      if (!doc.henvisning) return "Regjeringen";
-      
-      // Parse from henvisning pattern
-      // Prop. X S = Statsbudsjett/Finansdepartementet
-      // Prop. X L = Lov/Justisdepartementet
-      // Prop. X M = Miljødepartementet, etc.
-      if (doc.henvisning.includes(" S ")) {
-        return "Finansdepartementet";
+      // First, use the extracted departement field if available
+      if (doc.departement) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[DEBUG] Using extracted departement: "${doc.departement}" for doc ${doc.sakId}`);
+        }
+        return doc.departement;
       }
       
-      // Try to fetch from individual sak endpoint if available
-      if (doc.sakId) {
-        try {
-          const sakResponse = await fetch(`${process.env.STORTINGET_API_BASE || "https://data.stortinget.no/eksport"}/sak/${doc.sakId}`);
-          if (sakResponse.ok) {
-            const sakText = await sakResponse.text();
-            // Look for department in the HTML/XML
-            const deptMatch = sakText.match(/([A-ZÆØÅ][a-zæøå]+departementet)/i);
-            if (deptMatch) {
-              return deptMatch[1];
-            }
-          }
-        } catch (e) {
-          // Fallback handled below
+      // Fallback: Parse from henvisning pattern
+      if (doc.henvisning) {
+        // Prop. X S = Statsbudsjett/Finansdepartementet
+        // Prop. X L = Lov/Justisdepartementet
+        // Prop. X M = Miljødepartementet, etc.
+        if (doc.henvisning.includes(" S ")) {
+          return "Finansdepartementet";
         }
       }
       
+      // Default fallback
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[DEBUG] No departement found for doc ${doc.sakId}, using fallback "Regjeringen"`);
+      }
       return "Regjeringen";
     }
 

@@ -26,12 +26,22 @@ export interface StortingetDocument {
   fullText?: string; // Full document text
   komite?: string; // Committee handling the case
   status?: string; // Current status
+  departement?: string; // "Fra" - the department that submitted the case
   saksgang?: Array<{
     steg: string;
     dato?: string;
     komite?: string;
     beskrivelse?: string;
   }>;
+  // Publication references (PDFs/documents available for export)
+  publikasjon_referanser?: Array<{
+    eksport_id?: string; // Use this to fetch PDF via /publikasjon/{eksport_id}
+    lenke_tekst: string;
+    lenke_url: string;
+    type: string; // dok8, innstilling, referat, etc.
+    undertype?: string;
+  }>;
+  innstillingstekst?: string; // Committee recommendation text
 }
 
 export interface DigestItem {

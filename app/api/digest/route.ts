@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { fetchRecentDocuments } from "@/lib/stortinget";
 import { summarizeDocuments } from "@/lib/openai";
-import { DigestResponse } from "@/types";
+import { DigestResponse, DigestItem } from "@/types";
+import { storage } from "@/lib/storage";
 
 // Simple in-memory cache (in production, use Redis or similar)
 const cache = new Map<string, { data: DigestResponse; timestamp: number }>();
@@ -45,8 +46,47 @@ export async function GET(request: Request) {
       });
     }
 
-    // Summarize documents using OpenAI
-    const items = await summarizeDocuments(documents);
+    // Check storage for existing summaries
+    const items: DigestItem[] = [];
+    
+    for (const doc of documents) {
+      if (!doc.sakId) continue;
+      
+      // Try to get cached summary
+      const cachedSummary = await storage.getSummary(doc.sakId);
+      if (cachedSummary) {
+        items.push(cachedSummary);
+      } else {
+        // Need to generate summary
+        const summaries = await summarizeDocuments([doc]);
+        if (summaries.length > 0) {
+          const summary = summaries[0];
+          items.push(summary);
+          // Cache the summary
+          await storage.saveSummary(doc.sakId, summary);
+        }
+      }
+    }
+    
+    // If we still need to generate summaries (for new documents)
+    const docsNeedingSummaries = documents.filter(doc => 
+      doc.sakId && !items.find(item => {
+        // Match by URL since that's what we have in DigestItem
+        return item.url === doc.url;
+      })
+    );
+    
+    if (docsNeedingSummaries.length > 0) {
+      const newSummaries = await summarizeDocuments(docsNeedingSummaries);
+      for (let i = 0; i < newSummaries.length; i++) {
+        const summary = newSummaries[i];
+        const doc = docsNeedingSummaries[i];
+        if (doc.sakId) {
+          items.push(summary);
+          await storage.saveSummary(doc.sakId, summary);
+        }
+      }
+    }
 
     const response: DigestResponse = {
       date: new Date().toISOString().split("T")[0],

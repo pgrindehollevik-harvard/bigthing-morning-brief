@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { DigestItem } from "@/types";
 import { searchWeb } from "@/lib/webSearch";
+import { storage } from "@/lib/storage";
+import { getRelevantPdfChunks } from "@/lib/pdfHandler";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -26,25 +28,76 @@ export async function POST(request: Request) {
     }
 
     // Build rich context from cases (if any)
+    // Fetch full documents from storage for enhanced context
     const casesContext = cases.length > 0
-      ? cases
-          .map(
-            (caseItem: DigestItem, index: number) => {
-              let context = `
+      ? await Promise.all(
+          cases.map(async (caseItem: DigestItem, index: number) => {
+            // Extract sakId from URL or try to find it
+            let sakId: string | undefined;
+            try {
+              // URL format: https://www.stortinget.no/no/Saker-og-publikasjoner/Saker/Sak/?p=104870
+              const urlMatch = caseItem.url.match(/[?&]p=(\d+)/);
+              if (urlMatch) {
+                sakId = urlMatch[1];
+              }
+            } catch (e) {
+              // Ignore
+            }
+            
+            // Fetch full document from storage
+            const fullDoc = sakId ? await storage.getDocument(sakId) : null;
+            
+            let context = `
 Sak ${index + 1}:
 Tittel: ${caseItem.title}
 Oppsummering: ${caseItem.summary}
 Hvorfor viktig: ${caseItem.whyItMatters}
-Tema: ${caseItem.tema || "Ikke spesifisert"}
+Tema: ${caseItem.tema || fullDoc?.tema || "Ikke spesifisert"}
 Kilde: ${caseItem.source?.type === "regjering" ? caseItem.source.department : caseItem.source?.representatives?.map((r: any) => `${r.name} (${r.party})`).join(", ") || "Ukjent"}
 URL: ${caseItem.url}
 `;
-              // Add any additional context if available in the original document
-              // (This would come from the full StortingetDocument if we pass it through)
-              return context;
+            
+            // Add full document context if available
+            if (fullDoc) {
+              if (fullDoc.departement) {
+                context += `Fra: ${fullDoc.departement}\n`;
+              }
+              if (fullDoc.status) {
+                context += `Status: ${fullDoc.status}\n`;
+              }
+              if (fullDoc.komite) {
+                context += `Komité: ${fullDoc.komite}\n`;
+              }
+              if (fullDoc.innstillingstekst) {
+                context += `\nInnstilling:\n${fullDoc.innstillingstekst}\n`;
+              }
+              if (fullDoc.saksgang && fullDoc.saksgang.length > 0) {
+                context += `\nSaksgang:\n${fullDoc.saksgang.map(sg => `- ${sg.steg}${sg.dato ? ` (${sg.dato})` : ''}${sg.beskrivelse ? `: ${sg.beskrivelse}` : ''}`).join('\n')}\n`;
+              }
+              if (fullDoc.fullText) {
+                context += `\nFull tekst:\n${fullDoc.fullText.substring(0, 2000)}${fullDoc.fullText.length > 2000 ? '...' : ''}\n`;
+              }
+              
+              // Add relevant PDF chunks if available
+              if (fullDoc.publikasjon_referanser && fullDoc.publikasjon_referanser.length > 0) {
+                const eksportIds = fullDoc.publikasjon_referanser
+                  .filter(p => p.eksport_id)
+                  .map(p => p.eksport_id!)
+                  .slice(0, 3); // Limit to first 3 PDFs to avoid token limits
+                
+                if (eksportIds.length > 0) {
+                  const pdfChunks = await getRelevantPdfChunks(eksportIds, message);
+                  if (pdfChunks.length > 0) {
+                    context += `\nRelevante utdrag fra dokumenter:\n${pdfChunks.slice(0, 3).join('\n\n---\n\n')}\n`;
+                  }
+                }
+              }
             }
-          )
-          .join("\n---\n")
+            
+            return context;
+          })
+        )
+          .then(contexts => contexts.join("\n---\n"))
       : "Ingen saker er lagt til i kontekst ennå.";
 
     // Build conversation history
