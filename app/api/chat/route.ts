@@ -406,9 +406,14 @@ Web søkeresultater (OPPDATERT INFORMASJON):
 ${webSearchResults}
 
 Bruk denne informasjonen for å gi et detaljert, oppdatert svar.`;
+      }
     } else if (shouldSearch && !webSearchAvailable) {
       // Even if search failed, don't let AI say it can't search
-      systemPrompt += `\n\nMERK: Brukeren ba om web søk. Hvis søkeresultater mangler, baser deg på sakene i kontekst, men si IKKE at du ikke kan søke.`;
+      if (isEnglish) {
+        systemPrompt += `\n\nNOTE: The user requested a web search. If search results are missing, base your response on the cases in context, but do NOT say you cannot search.`;
+      } else {
+        systemPrompt += `\n\nMERK: Brukeren ba om web søk. Hvis søkeresultater mangler, baser deg på sakene i kontekst, men si IKKE at du ikke kan søke.`;
+      }
     }
     
     // Always add requirement to cite sources from cases - MUST be at the end
