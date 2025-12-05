@@ -16,11 +16,11 @@ const sakerListCache = {
 export async function fetchRecentDocuments(): Promise<StortingetDocument[]> {
   try {
     // Check cache first - avoid fetching /saker on every request
-    const now = Date.now();
+    const cacheNow = Date.now();
     let saker: any[] = [];
     let parsed: any = null;
     
-    if (sakerListCache.data && (now - sakerListCache.timestamp) < sakerListCache.ttl) {
+    if (sakerListCache.data && (cacheNow - sakerListCache.timestamp) < sakerListCache.ttl) {
       console.log('[Cache] Using cached saker list');
       parsed = sakerListCache.data;
     } else {
@@ -53,7 +53,7 @@ export async function fetchRecentDocuments(): Promise<StortingetDocument[]> {
       
       // Cache the parsed result
       sakerListCache.data = parsed;
-      sakerListCache.timestamp = now;
+      sakerListCache.timestamp = cacheNow;
       console.log('[Cache] Cached saker list');
     }
     
@@ -214,7 +214,12 @@ export async function fetchRecentDocuments(): Promise<StortingetDocument[]> {
             
             if (sakDetailResponse.ok) {
               const sakDetailXml = await sakDetailResponse.text();
-              const sakDetailParsed = parser.parse(sakDetailXml);
+              const detailParser = new XMLParser({
+                ignoreAttributes: false,
+                attributeNamePrefix: "@_",
+                textNodeName: "#text",
+              });
+              const sakDetailParsed = detailParser.parse(sakDetailXml);
               // The root element is "detaljert_sak" according to the API docs
               const sakDetail = sakDetailParsed?.detaljert_sak || sakDetailParsed?.sak;
               
