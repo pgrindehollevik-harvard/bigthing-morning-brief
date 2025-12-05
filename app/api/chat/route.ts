@@ -267,9 +267,10 @@ URL: ${caseItem.url}
       searchDebugInfo = { triggered: false, reason: "No search keywords detected in message" };
     }
 
-    // Determine response language
-    const responseLanguage = language === "en" ? "English" : "Norwegian";
-    const isEnglish = language === "en";
+    // TRANSLATION TEMPORARILY DISABLED - Always use Norwegian
+    // const responseLanguage = language === "en" ? "English" : "Norwegian";
+    const isEnglish = false; // Translation disabled
+    // const isEnglish = language === "en";
     
     // System prompt - Expert policy analyst tone
     let systemPrompt = isEnglish 
@@ -446,9 +447,8 @@ VIKTIG: Kilder-seksjonen må plasseres helt nederst i svaret, etter all analyse,
       temperature: 0.5, // Lower temperature for more factual, focused responses
     });
 
-    const defaultError = isEnglish 
-      ? "Sorry, I could not generate a response."
-      : "Beklager, jeg kunne ikke generere et svar.";
+    // Translation disabled - always use Norwegian
+    const defaultError = "Beklager, jeg kunne ikke generere et svar.";
     const response = completion.choices[0]?.message?.content || defaultError;
 
     // Include debug info in development
