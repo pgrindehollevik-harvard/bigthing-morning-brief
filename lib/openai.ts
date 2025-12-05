@@ -19,12 +19,22 @@ VIKTIG FOR TITLER:
 
 VIKTIG: I "whyItMatters"-feltet, separer hvert punkt med en ny linje (\\n). Hvert punkt skal være på sin egen linje.
 
-VIKTIG FOR KAPITALISERING:
-- Bruk norsk kapitaliseringsregler: kun egennavn og første ord i setninger skal ha stor bokstav
-- Eksempler: "tilpasning til teknologisk utvikling" (ikke "Tilpasning til Teknologisk Utvikling")
-- Eksempler: "forbedret konkurranse" (ikke "Forbedret Konkurranse")
-- Eksempler: "norsk politikk" (ikke "Norsk Politikk")
-- Kun egennavn som "Norge", "Stortinget", "Arbeiderpartiet" skal ha stor bokstav
+KRITISK VIKTIG - KAPITALISERING:
+Du MÅ følge norske kapitaliseringsregler strengt:
+- KUN egennavn (Norge, Stortinget, Arbeiderpartiet, Oslo) og første ord i setninger skal ha stor bokstav
+- ALDRI bruk stor bokstav på vanlige substantiv, adjektiv eller verb
+- FEIL: "Tilrettelegging for Teknologisk Utvikling" → RIKTIG: "tilrettelegging for teknologisk utvikling"
+- FEIL: "Styrking av Konkurranse i Markedet" → RIKTIG: "styrking av konkurranse i markedet"
+- FEIL: "Politiske Interessekonflikter" → RIKTIG: "politiske interessekonflikter"
+- FEIL: "Forbedret Konkurranse" → RIKTIG: "forbedret konkurranse"
+- FEIL: "Norsk Politikk" → RIKTIG: "norsk politikk"
+
+I overskrifter og lister:
+- Første ord kan ha stor bokstav: "Tilpasning til teknologisk utvikling" (ikke "Tilpasning til Teknologisk Utvikling")
+- Eller bruk liten bokstav: "tilpasning til teknologisk utvikling"
+- ALDRI stor bokstav på andre ord i overskrifter med mindre det er egennavn
+
+Dette er en kritisk regel - sjekk all tekst for feil kapitalisering før du sender svaret.
 
 Svar i ren JSON med følgende struktur:
 {

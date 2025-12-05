@@ -361,7 +361,18 @@ KRITISK - IKKE VÆR GENERISK:
 - Hvis dokumentet beskriver spesifikke konsekvenser eller implikasjoner - referer til dem direkte
 - Hvis dokumentet ikke inneholder nok informasjon til å svare spesifikt, si det tydelig og bruk det som er tilgjengelig
 - Unngå generiske beskrivelser som "betydelige investeringer" - bruk konkrete tall eller si at spesifikke tall ikke er tilgjengelige
-- Når du lister opp punkter, baser dem på faktisk innhold fra dokumentene, ikke generiske kategorier`;
+- Når du lister opp punkter, baser dem på faktisk innhold fra dokumentene, ikke generiske kategorier
+
+KRITISK VIKTIG - KAPITALISERING:
+Du MÅ følge norske kapitaliseringsregler strengt i ALL tekst du genererer:
+- KUN egennavn (Norge, Stortinget, Arbeiderpartiet, Oslo) og første ord i setninger skal ha stor bokstav
+- ALDRI bruk stor bokstav på vanlige substantiv, adjektiv eller verb
+- FEIL: "Tilrettelegging for Teknologisk Utvikling" → RIKTIG: "tilrettelegging for teknologisk utvikling"
+- FEIL: "Styrking av Konkurranse i Markedet" → RIKTIG: "styrking av konkurranse i markedet"
+- FEIL: "Politiske Interessekonflikter" → RIKTIG: "politiske interessekonflikter"
+- FEIL: "Forbedret Konkurranse" → RIKTIG: "forbedret konkurranse"
+- I overskrifter: "Tilpasning til teknologisk utvikling" (ikke "Tilpasning til Teknologisk Utvikling")
+- Sjekk ALL tekst for feil kapitalisering før du sender svaret`;
 
     // Add web search results if available
     if (webSearchAvailable && webSearchResults && webSearchResults.length > 50) {
