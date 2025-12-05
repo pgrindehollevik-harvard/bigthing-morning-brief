@@ -21,6 +21,7 @@ export async function GET(request: Request) {
     
     // Return cached data if still valid and not forcing refresh
     if (!forceRefresh && cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      console.log('[Digest] Returning cached response');
       return NextResponse.json(cached.data, {
         status: 200,
         headers: {
@@ -30,8 +31,10 @@ export async function GET(request: Request) {
       });
     }
 
+    console.log('[Digest] Fetching documents (cache miss or refresh requested)');
     // Fetch recent documents from Stortinget
     const documents = await fetchRecentDocuments();
+    console.log(`[Digest] Fetched ${documents.length} documents`);
 
     if (documents.length === 0) {
       const emptyResponse: DigestResponse = {

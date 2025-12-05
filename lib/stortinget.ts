@@ -5,33 +5,57 @@ import { storage } from "./storage";
 const STORTINGET_API_BASE =
   process.env.STORTINGET_API_BASE || "https://data.stortinget.no/eksport";
 
+// Cache for the /saker endpoint response (list of all cases)
+// This avoids fetching the full list on every request
+const sakerListCache = {
+  data: null as any,
+  timestamp: 0,
+  ttl: 5 * 60 * 1000, // 5 minutes
+};
+
 export async function fetchRecentDocuments(): Promise<StortingetDocument[]> {
   try {
-    // Fetch recent cases/documents from Stortinget API (returns XML)
-    // Use AbortController for timeout (30 seconds)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    // Check cache first - avoid fetching /saker on every request
+    const now = Date.now();
+    let saker: any[] = [];
+    let parsed: any = null;
     
-    const response = await fetch(`${STORTINGET_API_BASE}/saker`, {
-      signal: controller.signal,
-    });
-    
-    clearTimeout(timeoutId);
+    if (sakerListCache.data && (now - sakerListCache.timestamp) < sakerListCache.ttl) {
+      console.log('[Cache] Using cached saker list');
+      parsed = sakerListCache.data;
+    } else {
+      // Fetch recent cases/documents from Stortinget API (returns XML)
+      // Use AbortController for timeout (30 seconds)
+      console.log('[API] Fetching saker list from Stortinget API...');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      
+      const response = await fetch(`${STORTINGET_API_BASE}/saker`, {
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      throw new Error(`Stortinget API error: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`Stortinget API error: ${response.status}`);
+      }
+
+      const xmlText = await response.text();
+      
+      // Parse XML
+      const parser = new XMLParser({
+        ignoreAttributes: false,
+        attributeNamePrefix: "@_",
+        textNodeName: "#text",
+      });
+      
+      parsed = parser.parse(xmlText);
+      
+      // Cache the parsed result
+      sakerListCache.data = parsed;
+      sakerListCache.timestamp = now;
+      console.log('[Cache] Cached saker list');
     }
-
-    const xmlText = await response.text();
-    
-    // Parse XML
-    const parser = new XMLParser({
-      ignoreAttributes: false,
-      attributeNamePrefix: "@_",
-      textNodeName: "#text",
-    });
-    
-    const parsed = parser.parse(xmlText);
     
     // Extract saker from XML structure
     const sakerListe = parsed?.saker_oversikt?.saker_liste;
@@ -40,7 +64,7 @@ export async function fetchRecentDocuments(): Promise<StortingetDocument[]> {
     }
     
     // Handle both single sak and array of saker
-    const saker = Array.isArray(sakerListe.sak) ? sakerListe.sak : [sakerListe.sak];
+    saker = Array.isArray(sakerListe.sak) ? sakerListe.sak : [sakerListe.sak];
 
     // Filter documents from last 7 days
     const now = new Date();
