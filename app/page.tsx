@@ -5,6 +5,44 @@ import { DigestResponse, DigestItem } from "@/types";
 import { getPartyColors } from "@/lib/partyColors";
 import ChatWindow from "./components/ChatWindow";
 
+// Translation keys
+const translations = {
+  no: {
+    loading: "Laster dagens oppsummering...",
+    error: "Feil:",
+    tryAgain: "Prøv igjen",
+    noDocuments: "Ingen nye dokumenter de siste 7 dagene.",
+    whyImportant: "Hvorfor dette er viktig:",
+    readFull: "Les hele dokumentet →",
+    addToChat: "+ Legg til i chat",
+    inChat: "✓ I chat",
+    updated: "Oppdatert:",
+    refresh: "Oppdater",
+    refreshing: "Oppdaterer...",
+    chat: "Chat",
+    cases: "saker",
+    case: "sak",
+    inContext: "i kontekst",
+  },
+  en: {
+    loading: "Loading today's summary...",
+    error: "Error:",
+    tryAgain: "Try again",
+    noDocuments: "No new documents in the last 7 days.",
+    whyImportant: "Why this matters:",
+    readFull: "Read full document →",
+    addToChat: "+ Add to chat",
+    inChat: "✓ In chat",
+    updated: "Updated:",
+    refresh: "Refresh",
+    refreshing: "Refreshing...",
+    chat: "Chat",
+    cases: "cases",
+    case: "case",
+    inContext: "in context",
+  },
+};
+
 export default function Home() {
   const [digest, setDigest] = useState<DigestResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -13,7 +51,10 @@ export default function Home() {
   const [casesInChat, setCasesInChat] = useState<DigestItem[]>([]);
   const [chatWidth, setChatWidth] = useState(50); // Percentage width
   const [isResizing, setIsResizing] = useState(false);
+  const [language, setLanguage] = useState<"no" | "en">("no");
   const resizeRef = useRef<HTMLDivElement>(null);
+  
+  const t = translations[language];
 
   const fetchDigest = async (forceRefresh = false) => {
     try {
@@ -115,7 +156,7 @@ export default function Home() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Laster dagens oppsummering...</p>
+          <p className="text-gray-600">{t.loading}</p>
         </div>
       </div>
     );
@@ -125,12 +166,12 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 mb-4">Feil: {error}</p>
+          <p className="text-red-600 mb-4">{t.error} {error}</p>
           <button
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
-            Prøv igjen
+            {t.tryAgain}
           </button>
         </div>
       </div>
@@ -159,34 +200,42 @@ export default function Home() {
                         </p>
                       )}
                     </div>
-                    <button
-                      onClick={() => fetchDigest(true)}
-                      disabled={loading}
-                      className="px-4 py-2 text-sm font-medium text-[#0066cc] bg-white border border-[#0066cc] rounded-lg hover:bg-[#f0f7ff] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      title="Oppdater innhold"
-                    >
-                      <svg
-                        className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setLanguage(language === "no" ? "en" : "no")}
+                        className="px-3 py-1.5 text-sm font-medium text-[#666] bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
-                      </svg>
-                      {loading ? 'Oppdaterer...' : 'Oppdater'}
-                    </button>
+                        {language === "no" ? "EN" : "NO"}
+                      </button>
+                      <button
+                        onClick={() => fetchDigest(true)}
+                        disabled={loading}
+                        className="px-4 py-2 text-sm font-medium text-[#0066cc] bg-white border border-[#0066cc] rounded-lg hover:bg-[#f0f7ff] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        title={language === "no" ? "Oppdater innhold" : "Refresh content"}
+                      >
+                        <svg
+                          className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                          />
+                        </svg>
+                        {loading ? t.refreshing : t.refresh}
+                      </button>
+                    </div>
                   </div>
                 </header>
 
         {digest && digest.items.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-8 text-center">
             <p className="text-gray-600">
-                      Ingen nye dokumenter de siste 7 dagene.
+              {t.noDocuments}
             </p>
           </div>
         ) : (
@@ -196,7 +245,7 @@ export default function Home() {
                 key={index}
                 className="bg-white rounded-lg border border-gray-200 p-6 hover:border-gray-300 transition-all relative mb-4"
               >
-                <h2 className="text-xl font-medium text-[#1a1a1a] mb-3 leading-snug">
+                <h2 className="text-base font-normal text-[#1a1a1a] mb-3 leading-snug">
                   {item.title}
                 </h2>
                 
@@ -268,7 +317,7 @@ export default function Home() {
                 </p>
                 <div className="bg-[#f5f5f5] rounded-md p-4 mb-4 border-l-4 border-[#0066cc]">
                   <h3 className="font-medium text-[#1a1a1a] mb-2 text-sm">
-                    Hvorfor dette er viktig:
+                    {t.whyImportant}
                   </h3>
                   <div className="text-[#4a4a4a] whitespace-pre-line leading-relaxed text-[15px]">
                     {item.whyItMatters}
@@ -283,7 +332,7 @@ export default function Home() {
                         rel="noopener noreferrer"
                         className="inline-flex items-center text-[#0066cc] hover:text-[#0052a3] font-medium whitespace-nowrap"
                       >
-                        Les hele dokumentet →
+                        {t.readFull}
                       </a>
                     )}
                     <button
@@ -296,12 +345,12 @@ export default function Home() {
                       disabled={casesInChat.some((c) => c.url === item.url)}
                       className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed whitespace-nowrap flex-shrink-0"
                     >
-                      {casesInChat.some((c) => c.url === item.url) ? "✓ I chat" : "+ Legg til i chat"}
+                      {casesInChat.some((c) => c.url === item.url) ? t.inChat : t.addToChat}
                     </button>
                   </div>
                   {item.date && (
                     <span className="text-xs text-gray-500 whitespace-nowrap flex-shrink-0">
-                      Oppdatert: {formatUpdateDate(item.date)}
+                      {t.updated} {formatUpdateDate(item.date)}
                     </span>
                   )}
                 </div>
@@ -338,6 +387,7 @@ export default function Home() {
               onRemoveCase={(index) => {
                 setCasesInChat(casesInChat.filter((_, i) => i !== index));
               }}
+              language={language}
             />
           </div>
         )}
@@ -362,7 +412,7 @@ export default function Home() {
               d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
             />
           </svg>
-          Chat {casesInChat.length > 0 && `(${casesInChat.length})`}
+          {t.chat} {casesInChat.length > 0 && `(${casesInChat.length})`}
         </button>
       )}
     </div>

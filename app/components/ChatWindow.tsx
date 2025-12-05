@@ -14,6 +14,7 @@ interface ChatWindowProps {
   onClose: () => void;
   cases: DigestItem[];
   onRemoveCase: (index: number) => void;
+  language?: "no" | "en";
 }
 
 // Generate intelligent, context-aware suggested questions
@@ -109,12 +110,45 @@ function generateSuggestedQuestions(cases: DigestItem[]): string[] {
   }
 }
 
+const chatTranslations = {
+  no: {
+    title: "Analyse og diskusjon",
+    casesInContext: "saker i kontekst",
+    case: "sak",
+    startConversation: "Start en samtale om sakene",
+    startGeneral: "Start en samtale",
+    description: "Du kan spørre om sammenhenger, implikasjoner, eller be om analyse.",
+    descriptionGeneral: "Legg til saker fra kortene over, eller still generelle spørsmål om norsk politikk.",
+    suggestions: "Forslag:",
+    placeholder: "Spør om sakene, sammenhenger, eller be om analyse...",
+    send: "Send",
+    error: "Beklager, det oppstod en feil. Prøv igjen.",
+    thinking: "Tenker...",
+  },
+  en: {
+    title: "Analysis and discussion",
+    casesInContext: "cases in context",
+    case: "case",
+    startConversation: "Start a conversation about the cases",
+    startGeneral: "Start a conversation",
+    description: "You can ask about connections, implications, or request analysis.",
+    descriptionGeneral: "Add cases from the cards above, or ask general questions about Norwegian politics.",
+    suggestions: "Suggestions:",
+    placeholder: "Ask about the cases, connections, or request analysis...",
+    send: "Send",
+    error: "Sorry, an error occurred. Please try again.",
+    thinking: "Thinking...",
+  },
+};
+
 export default function ChatWindow({
   isOpen,
   onClose,
   cases,
   onRemoveCase,
+  language = "no",
 }: ChatWindowProps) {
+  const t = chatTranslations[language];
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -164,7 +198,7 @@ export default function ChatWindow({
     } catch (error) {
       const errorMessage: Message = {
         role: "assistant",
-        content: "Beklager, det oppstod en feil. Prøv igjen.",
+        content: t.error,
       };
       setMessages((prev) => [...prev, errorMessage]);
       setStreamingContent("");
@@ -183,10 +217,10 @@ export default function ChatWindow({
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div>
           <h2 className="text-lg font-semibold text-[#1a1a1a]">
-            Analyse og diskusjon
+            {t.title}
           </h2>
           <p className="text-xs text-[#666] mt-0.5">
-            {cases.length} {cases.length === 1 ? "sak" : "saker"} i kontekst
+            {cases.length} {cases.length === 1 ? t.case : t.casesInContext.split(' ')[0]} {t.casesInContext.split(' ').slice(1).join(' ')}
           </p>
         </div>
         <button
@@ -200,8 +234,8 @@ export default function ChatWindow({
       {/* Cases in context */}
       {cases.length > 0 && (
         <div className="p-3 border-b border-gray-200 bg-[#fafafa] max-h-40 overflow-y-auto">
-          <p className="text-xs font-medium text-[#666] mb-2">
-            Saker i kontekst:
+            <p className="text-xs font-medium text-[#666] mb-2">
+            {t.casesInContext}:
           </p>
           <div className="space-y-2">
             {cases.map((caseItem, index) => (
@@ -228,13 +262,13 @@ export default function ChatWindow({
           <div className="text-center text-[#666] mt-12">
             <p className="mb-3 text-[#1a1a1a] font-medium">
               {cases.length > 0
-                ? "Start en samtale om sakene"
-                : "Start en samtale"}
+                ? t.startConversation
+                : t.startGeneral}
             </p>
             <p className="text-sm mb-6">
               {cases.length > 0
-                ? "Du kan spørre om sammenhenger, implikasjoner, eller be om analyse."
-                : "Legg til saker fra kortene over, eller still generelle spørsmål om norsk politikk."}
+                ? t.description
+                : t.descriptionGeneral}
             </p>
             
             {/* Suggested questions */}
@@ -283,7 +317,7 @@ export default function ChatWindow({
                   <div className="w-1.5 h-1.5 bg-[#999] rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
                   <div className="w-1.5 h-1.5 bg-[#999] rounded-full animate-bounce" style={{ animationDelay: "0.4s" }}></div>
                 </div>
-                <span className="text-xs">Tenker...</span>
+                <span className="text-xs">{t.thinking}</span>
               </div>
             </div>
           </div>
@@ -292,7 +326,7 @@ export default function ChatWindow({
         {/* Show suggested questions after first message */}
         {messages.length > 0 && !isLoading && suggestedQuestions.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs text-[#666] mb-2">Forslag:</p>
+            <p className="text-xs text-[#666] mb-2">{t.suggestions}</p>
             {suggestedQuestions.slice(0, 2).map((question, index) => (
               <button
                 key={index}
@@ -316,7 +350,7 @@ export default function ChatWindow({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-            placeholder="Spør om sakene, sammenhenger, eller be om analyse..."
+            placeholder={t.placeholder}
             className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0066cc] focus:border-transparent text-[15px]"
             disabled={isLoading}
           />
@@ -325,7 +359,7 @@ export default function ChatWindow({
             disabled={isLoading || !input.trim()}
             className="px-5 py-2.5 bg-[#0066cc] text-white rounded-lg hover:bg-[#0052a3] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium text-sm"
           >
-            Send
+            {t.send}
           </button>
         </div>
       </div>
