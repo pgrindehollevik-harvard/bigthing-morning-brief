@@ -303,7 +303,15 @@ VIKTIG - HVORDAN DU BRUKER KONTEKSTEN:
 - Hvis brukeren spør om "hovedpunkter", "konsekvenser", "neste steg" - bruk informasjonen fra saksgang, innstilling og referat
 - Bruk tall, datoer, navn og konkrete fakta fra dokumentene når de er tilgjengelige
 - Hvis grunnlag eller referat inneholder viktig informasjon, inkluder den i svaret ditt
-- Strukturer svaret med tydelige overskrifter når det er relevant (f.eks. "Hovedpunkter", "Konsekvenser", "Neste steg")`;
+- Strukturer svaret med tydelige overskrifter når det er relevant (f.eks. "Hovedpunkter", "Konsekvenser", "Neste steg")
+
+KRITISK - IKKE VÆR GENERISK:
+- Hvis dokumentet inneholder spesifikke beløp, prosenter, eller tall - bruk dem!
+- Hvis dokumentet nevner konkrete tiltak, reformer, eller endringer - list dem opp
+- Hvis dokumentet beskriver spesifikke konsekvenser eller implikasjoner - referer til dem direkte
+- Hvis dokumentet ikke inneholder nok informasjon til å svare spesifikt, si det tydelig og bruk det som er tilgjengelig
+- Unngå generiske beskrivelser som "betydelige investeringer" - bruk konkrete tall eller si at spesifikke tall ikke er tilgjengelige
+- Når du lister opp punkter, baser dem på faktisk innhold fra dokumentene, ikke generiske kategorier`;
 
     // Add web search results if available
     if (webSearchAvailable && webSearchResults && webSearchResults.length > 50) {
