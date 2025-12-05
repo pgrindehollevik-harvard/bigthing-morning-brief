@@ -223,13 +223,17 @@ export function getStorage(): StorageAdapter {
   if (storageInstance) return storageInstance;
 
   // Use Vercel KV/Upstash Redis in production if available
-  // Support multiple env var names (Vercel KV, Upstash, etc.)
+  // Support multiple env var names (Vercel KV, Upstash, custom prefixes, etc.)
   const kvUrl = process.env.KV_REST_API_URL || 
                 process.env.UPSTASH_REDIS_REST_URL ||
-                process.env.REDIS_REST_API_URL;
+                process.env.REDIS_REST_API_URL ||
+                process.env.STORAGE_URL || // Custom prefix from Vercel Marketplace
+                process.env.STORAGE_REST_URL;
   const kvToken = process.env.KV_REST_API_TOKEN || 
                   process.env.UPSTASH_REDIS_REST_TOKEN ||
-                  process.env.REDIS_REST_API_TOKEN;
+                  process.env.REDIS_REST_API_TOKEN ||
+                  process.env.STORAGE_TOKEN || // Custom prefix from Vercel Marketplace
+                  process.env.STORAGE_REST_TOKEN;
   
   if (kvUrl && kvToken) {
     // Set the env vars that @vercel/kv expects
