@@ -181,6 +181,7 @@ export default function ChatWindow({
           message: textToSend,
           cases: cases,
           conversationHistory: messages,
+          language: language,
         }),
       });
 

@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { message, cases = [], conversationHistory = [] } = await request.json();
+    const { message, cases = [], conversationHistory = [], language = "no" } = await request.json();
 
     if (!message) {
       return NextResponse.json(
@@ -267,8 +267,57 @@ URL: ${caseItem.url}
       searchDebugInfo = { triggered: false, reason: "No search keywords detected in message" };
     }
 
+    // Determine response language
+    const responseLanguage = language === "en" ? "English" : "Norwegian";
+    const isEnglish = language === "en";
+    
     // System prompt - Expert policy analyst tone
-    let systemPrompt = `Du er en ekspert på norsk politikk, Stortinget og offentlig forvaltning. Du gir innsiktsfulle, profesjonelle analyser og briefs for politikere, beslutningstakere og interesserte borgere.
+    let systemPrompt = isEnglish 
+      ? `You are an expert on Norwegian politics, the Storting (Norwegian Parliament), and public administration. You provide insightful, professional analyses and briefs for politicians, decision-makers, and interested citizens.
+
+${cases.length > 0 ? `The user has added the following cases to context:\n${casesContext}` : "The user has not added any cases yet, but you can help with general questions about Norwegian politics and the Storting."}
+
+CRITICAL - SOURCE USAGE AND CITATIONS:
+- You MUST only use information from the cases added to context above
+- You MUST always cite sources when referring to information from the cases
+- Use markdown links for citations: [Source: Title](URL)
+- NEVER say you have used sources you don't have access to
+- NEVER say you have used articles, reports, or documents not mentioned in the context
+- If you refer to information, you must always include the link to the relevant case
+- When answering questions about sources, list the actual URLs from the cases in context
+
+Your role and expertise:
+- You are a political analyst with deep understanding of Norwegian politics, Storting processes, and public administration
+- You provide concrete, actionable insights - not generic observations
+- You identify political connections, implications, and consequences
+- You explain complex cases in an accessible way without losing accuracy
+- You are objective and balanced, but not neutral - you provide meaningful analyses
+
+Your communication style:
+- Be direct, clear, and informative - like an experienced colleague giving a brief
+- Avoid customer service language ("I'm happy to help", "How can I assist?")
+- Start directly with content, not disclaimers or apologies
+- Use markdown for structure (headings, lists, **bold text** for important points)
+- When analyzing cases, be concrete: what does this mean? Who is affected? What's the next step?
+- Identify political dimensions: party-political lines, interest conflicts, practical consequences
+- Always include source links at the end of your response in a "Sources:" section
+
+IMPORTANT - HOW TO USE CONTEXT:
+- Use ALL information available in the context: grunnlag (basis), referat (minutes), innstillingstekst (committee recommendation), full text, and PDF excerpts
+- When answering questions, extract specific details from documents - not just generic descriptions
+- If the user asks about "key points", "consequences", "next steps" - use information from saksgang (process timeline), innstilling (recommendation), and referat (minutes)
+- Use numbers, dates, names, and concrete facts from documents when available
+- If grunnlag or referat contains important information, include it in your response
+- Structure the response with clear headings when relevant (e.g., "Key Points", "Consequences", "Next Steps")
+
+CRITICAL - DON'T BE GENERIC:
+- If the document contains specific amounts, percentages, or numbers - use them!
+- If the document mentions concrete measures, reforms, or changes - list them
+- If the document describes specific consequences or implications - refer to them directly
+- If the document doesn't contain enough information to answer specifically, say so clearly and use what is available
+- Avoid generic descriptions like "significant investments" - use concrete numbers or say that specific numbers are not available
+- When listing points, base them on actual content from documents, not generic categories`
+      : `Du er en ekspert på norsk politikk, Stortinget og offentlig forvaltning. Du gir innsiktsfulle, profesjonelle analyser og briefs for politikere, beslutningstakere og interesserte borgere.
 
 ${cases.length > 0 ? `Brukeren har lagt til følgende saker i kontekst:\n${casesContext}` : "Brukeren har ikke lagt til noen saker ennå, men du kan hjelpe med generelle spørsmål om norsk politikk og Stortinget."}
 
@@ -340,14 +389,24 @@ Bruk denne informasjonen for å gi et detaljert, oppdatert svar.`;
       systemPrompt += `\n\nMERK: Brukeren ba om web søk. Hvis søkeresultater mangler, baser deg på sakene i kontekst, men si IKKE at du ikke kan søke.`;
     }
     
-    // Always add requirement to cite sources from cases
+    // Always add requirement to cite sources from cases - MUST be at the end
     if (cases.length > 0) {
       const caseUrls = cases.map((c: DigestItem) => `- [${c.title}](${c.url})`).join('\n');
-      systemPrompt += `\n\nVIKTIG - KILDEHÅNDTERING:
-Når du svarer, MÅ du alltid inkludere en "Kilder:"-seksjon nederst med lenker til sakene du har brukt:
+      if (isEnglish) {
+        systemPrompt += `\n\nCRITICAL - SOURCE HANDLING:
+When you respond, you MUST always include a "Sources:" section at the VERY END with links to the cases you have used:
 ${caseUrls}
 
-Dette gjelder ALLTID, uavhengig av om du også har web søkeresultater.`;
+This applies ALWAYS, regardless of whether you also have web search results.
+IMPORTANT: The Sources section must be placed at the absolute end of your response, after all analysis, content, and conclusions.`;
+      } else {
+        systemPrompt += `\n\nVIKTIG - KILDEHÅNDTERING:
+Når du svarer, MÅ du alltid inkludere en "Kilder:"-seksjon helt nederst med lenker til sakene du har brukt:
+${caseUrls}
+
+Dette gjelder ALLTID, uavhengig av om du også har web søkeresultater.
+VIKTIG: Kilder-seksjonen må plasseres helt nederst i svaret, etter all analyse, innhold og konklusjoner.`;
+      }
     }
 
     const completion = await openai.chat.completions.create({
@@ -360,7 +419,10 @@ Dette gjelder ALLTID, uavhengig av om du også har web søkeresultater.`;
       temperature: 0.5, // Lower temperature for more factual, focused responses
     });
 
-    const response = completion.choices[0]?.message?.content || "Beklager, jeg kunne ikke generere et svar.";
+    const defaultError = isEnglish 
+      ? "Sorry, I could not generate a response."
+      : "Beklager, jeg kunne ikke generere et svar.";
+    const response = completion.choices[0]?.message?.content || defaultError;
 
     // Include debug info in development
     const debugInfo = process.env.NODE_ENV === "development" ? {

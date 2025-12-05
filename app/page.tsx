@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { DigestResponse, DigestItem } from "@/types";
 import { getPartyColors } from "@/lib/partyColors";
 import ChatWindow from "./components/ChatWindow";
+import { translateCaseContent } from "@/lib/translate";
 
 // Translation keys
 const translations = {
@@ -52,9 +53,36 @@ export default function Home() {
   const [chatWidth, setChatWidth] = useState(50); // Percentage width
   const [isResizing, setIsResizing] = useState(false);
   const [language, setLanguage] = useState<"no" | "en">("no");
+  const [translatedItems, setTranslatedItems] = useState<DigestItem[]>([]);
   const resizeRef = useRef<HTMLDivElement>(null);
   
   const t = translations[language];
+  
+  // Translate case content when language changes
+  useEffect(() => {
+    if (digest && digest.items.length > 0) {
+      if (language === "en") {
+        // Translate all items
+        Promise.all(
+          digest.items.map(item => 
+            translateCaseContent(item, "en").then(translated => ({
+              ...item,
+              title: translated.title,
+              summary: translated.summary,
+              whyItMatters: translated.whyItMatters,
+              tema: translated.tema,
+            }))
+          )
+        ).then(setTranslatedItems);
+      } else {
+        // Use original items for Norwegian
+        setTranslatedItems(digest.items);
+      }
+    }
+  }, [digest, language]);
+  
+  // Use translated items if available, otherwise use original
+  const displayItems = translatedItems.length > 0 ? translatedItems : (digest?.items || []);
 
   const fetchDigest = async (forceRefresh = false) => {
     try {
@@ -240,7 +268,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="space-y-6">
-            {digest?.items.map((item, index) => (
+            {displayItems.map((item, index) => (
               <div
                 key={index}
                 className="bg-white rounded-lg border border-gray-200 p-6 hover:border-gray-300 transition-all relative mb-4"
