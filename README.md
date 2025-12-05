@@ -1,150 +1,169 @@
-# Stortinget Daily Brief
+# tinget.ai
 
-A Next.js application that automatically fetches recent documents from the Norwegian Parliament (Stortinget), summarizes them using OpenAI, and displays a Norwegian-language daily brief for policymakers and lawmakers.
+AI-powered briefs, insights, and analysis for policymakers, politicians, and curious laypeople, based on documents from the Norwegian Parliament (Stortinget).
 
 ## Features
 
-- 📄 **Automatic Document Fetching**: Retrieves all recent documents from the Stortinget API (last 7 days)
-- 🤖 **AI-Powered Summaries**: Uses OpenAI GPT-4o-mini to generate concise Norwegian summaries
-- 🎨 **Party Color Coding**: Visual tags with official party colors for representatives
-- 🏛️ **Source Attribution**: Shows department names for government proposals and individual representatives for member proposals
-- 🔗 **Direct Links**: Quick access to original documents and representative profiles
-- 💬 **AI Chat**: Interactive chat to analyze cases, find connections, and search for related news
-- 📱 **Responsive Design**: Clean, modern UI built with Tailwind CSS
+- **Daily Briefs**: Automatically fetches and summarizes documents from Stortinget from the last 7 days
+- **Intelligent Chat**: Ask questions about cases, get analysis, and explore connections between documents
+- **Rich Context**: Full document context including grunnlag (basis), referat (minutes), innstillingstekst (committee recommendations), and PDF content
+- **Web Search Integration**: Find relevant Norwegian news articles about cases
+- **Persistent Storage**: Uses Vercel KV (Redis) for fast loading and incremental updates
+- **Smart Caching**: Reduces API calls and improves performance
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 (App Router)
+- **Framework**: Next.js 15.5.6 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
-- **AI**: OpenAI API (GPT-4o-mini)
-- **Data Source**: [Stortinget Open Data API](https://data.stortinget.no/)
+- **AI**: OpenAI GPT-4o and GPT-4o-mini
+- **Search**: Tavily API
+- **Storage**: Vercel KV (Redis) in production, in-memory for local dev
+- **PDF Processing**: pdf-parse for extracting text from PDFs
 
-## Prerequisites
+## Getting Started
 
-- Node.js 18+ and npm
-- OpenAI API key ([Get one here](https://platform.openai.com/api-keys))
+### Prerequisites
 
-## Setup
+- Node.js 18+ 
+- npm or yarn
+- OpenAI API key
+- (Optional) Tavily API key for web search
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/bigthing-morning-brief.git
-   cd bigthing-morning-brief
-   ```
+### Installation
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+1. Clone the repository:
+```bash
+git clone https://github.com/pgrindehollevik-harvard/bigthing-morning-brief.git
+cd bigthing-morning-brief
+```
 
-3. **Create environment file**
-   Create a `.env.local` file in the root directory:
-   ```env
-   OPENAI_API_KEY=your_openai_api_key_here
-   STORTINGET_API_BASE=https://data.stortinget.no/eksport
-   
-   # Optional: Web search API (for chat feature)
-   # See SEARCH_SETUP.md for details
-   # TAVILY_API_KEY=your_tavily_key_here
-   # or
-   # SERPAPI_KEY=your_serpapi_key_here
-   # or
-   # GOOGLE_API_KEY=your_google_key_here
-   # GOOGLE_SEARCH_ENGINE_ID=your_search_engine_id_here
-   ```
+2. Install dependencies:
+```bash
+npm install
+```
 
-4. **Run the development server**
-   ```bash
-   npm run dev
-   ```
+3. Create `.env.local` file:
+```env
+OPENAI_API_KEY=your_openai_api_key_here
+TAVILY_API_KEY=your_tavily_api_key_here  # Optional, for web search
+```
 
-5. **Open your browser**
-   Navigate to [http://localhost:3000](http://localhost:3000)
+4. Run the development server:
+```bash
+npm run dev
+```
 
-## How It Works
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-1. The app fetches recent documents from the Stortinget API (XML format)
-2. Documents are parsed and filtered to the last 7 days (all documents shown, no limit)
-3. Each document is sent to OpenAI for summarization in Norwegian
-4. Summaries include:
-   - A brief overview (2-4 sentences)
-   - "Hvorfor dette er viktig" (Why this is important) section
-   - Source attribution (department or representatives)
-5. Results are displayed in a clean, card-based interface
+## Environment Variables
+
+- `OPENAI_API_KEY` (required): Your OpenAI API key for AI summaries and chat
+- `TAVILY_API_KEY` (optional): Tavily API key for web search functionality
+- `KV_REST_API_URL` (production): Vercel KV REST API URL
+- `KV_REST_API_TOKEN` (production): Vercel KV REST API token
+
+## Deployment
+
+### Vercel
+
+1. Push your code to GitHub
+2. Import the project in Vercel
+3. Add environment variables in Vercel dashboard
+4. Deploy
+
+### Custom Domain
+
+To use a custom domain (e.g., `tinget.ai`):
+
+1. Go to Vercel Dashboard → Your Project → Settings → Domains
+2. Add your domain
+3. Follow Vercel's DNS instructions
+4. Add DNS records at your domain registrar
+5. Wait for DNS propagation
+
+See `DOMAIN_SETUP.md` for detailed instructions.
 
 ## Project Structure
 
 ```
 ├── app/
 │   ├── api/
-│   │   └── digest/          # API route for fetching and summarizing documents
-│   ├── globals.css          # Global styles
-│   ├── layout.tsx           # Root layout
-│   └── page.tsx             # Main page component
+│   │   ├── chat/          # Chat API endpoint
+│   │   ├── digest/        # Daily digest endpoint
+│   │   ├── translate/     # Translation API (currently disabled)
+│   │   └── test-storage/  # Storage testing endpoint
+│   ├── components/
+│   │   ├── ChatWindow.tsx # Chat interface component
+│   │   └── MessageContent.tsx # Message rendering component
+│   └── page.tsx           # Main page
 ├── lib/
-│   ├── openai.ts            # OpenAI integration
-│   ├── partyColors.ts       # Party color mappings
-│   └── stortinget.ts        # Stortinget API client
-├── types/
-│   └── index.ts             # TypeScript type definitions
-└── ...
+│   ├── stortinget.ts      # Stortinget API integration
+│   ├── openai.ts          # OpenAI summarization
+│   ├── webSearch.ts       # Web search integration
+│   ├── storage.ts         # Storage abstraction layer
+│   └── pdfHandler.ts      # PDF processing
+└── types/
+    └── index.ts           # TypeScript type definitions
 ```
 
-## Environment Variables
+## Features in Detail
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `OPENAI_API_KEY` | Your OpenAI API key | Yes |
-| `STORTINGET_API_BASE` | Base URL for Stortinget API | No (defaults to `https://data.stortinget.no/eksport`) |
+### Document Fetching
 
-## Party Colors
+- Fetches documents from the last 7 days
+- Incremental updates: only fetches new or updated documents
+- Caches document list for 5 minutes to reduce API calls
+- Stores full document context in Vercel KV
 
-The application uses official party colors for visual identification:
+### AI Summarization
 
-- **Arbeiderpartiet (Ap)**: Red
-- **Høyre (H)**: Blue
-- **Fremskrittspartiet (FrP)**: Cyan
-- **Senterpartiet (Sp)**: Green
-- **Kristelig Folkeparti (KrF)**: Yellow
-- **Venstre (V)**: Emerald
-- **Sosialistisk Venstreparti (SV)**: Dark Red
-- **Miljøpartiet De Grønne (MDG)**: Lime Green
-- **Rødt (R)**: Dark Red
+- Uses GPT-4o-mini for efficient summarization
+- Includes full context: grunnlag, referat, innstillingstekst, fullText
+- Generates professional, policy-focused summaries
+- Follows Norwegian capitalization rules
+
+### Chat Interface
+
+- Context-aware suggested questions
+- Full document context from storage
+- PDF chunk retrieval for relevant documents
+- Web search integration for Norwegian news
+- Sources always cited at the end
+
+### Storage
+
+- **Production**: Vercel KV (Redis) for persistent storage
+- **Local Dev**: In-memory storage with JSON file backup
+- Stores: documents, summaries, PDF chunks
+- Date-indexed for efficient queries
+
+## API Endpoints
+
+- `GET /api/digest` - Get daily digest of documents
+- `POST /api/chat` - Chat with AI about cases
+- `POST /api/translate` - Translate case content (currently disabled)
+- `GET /api/test-storage` - Test storage functionality
 
 ## Development
 
+### Local Development
+
+- Uses in-memory storage (data saved to `.data/storage.json`)
+- No Vercel KV required for local dev
+- All features work locally except production storage
+
+### Building
+
 ```bash
-# Run development server
-npm run dev
-
-# Build for production
 npm run build
-
-# Start production server
 npm start
-
-# Run linter
-npm run lint
 ```
-
-## Notes
-
-- The Stortinget API returns XML format, which is automatically parsed
-- Documents are filtered to the last 7 days to ensure relevance (all documents shown, no limit)
-- The app handles missing or incomplete data gracefully
-- All summaries are generated in Norwegian (Bokmål)
 
 ## License
 
-This project is open source and available for use.
+Private project.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Acknowledgments
-
-- [Stortinget](https://www.stortinget.no/) for providing open data
-- [OpenAI](https://openai.com/) for the summarization API
-
+This is a private project. For questions or issues, contact the repository owner.
