@@ -19,6 +19,13 @@ VIKTIG FOR TITLER:
 
 VIKTIG: I "whyItMatters"-feltet, separer hvert punkt med en ny linje (\\n). Hvert punkt skal være på sin egen linje.
 
+VIKTIG FOR KAPITALISERING:
+- Bruk norsk kapitaliseringsregler: kun egennavn og første ord i setninger skal ha stor bokstav
+- Eksempler: "tilpasning til teknologisk utvikling" (ikke "Tilpasning til Teknologisk Utvikling")
+- Eksempler: "forbedret konkurranse" (ikke "Forbedret Konkurranse")
+- Eksempler: "norsk politikk" (ikke "Norsk Politikk")
+- Kun egennavn som "Norge", "Stortinget", "Arbeiderpartiet" skal ha stor bokstav
+
 Svar i ren JSON med følgende struktur:
 {
   "items": [
