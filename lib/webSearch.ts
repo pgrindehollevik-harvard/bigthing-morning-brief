@@ -103,8 +103,8 @@ export async function searchWeb(query: string, maxResults: number = 5): Promise<
           });
         
         // Separate Norwegian and foreign sources
-        const norwegianResults = processedResults.filter(r => r.isNorwegian);
-        const foreignResults = processedResults.filter(r => !r.isNorwegian);
+        const norwegianResults = processedResults.filter((r: any) => r.isNorwegian);
+        const foreignResults = processedResults.filter((r: any) => !r.isNorwegian);
         
         // Sort each group by date (most recent first)
         const sortByDate = (a: any, b: any) => {
