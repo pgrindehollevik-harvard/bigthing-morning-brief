@@ -7,7 +7,15 @@ const STORTINGET_API_BASE =
 export async function fetchRecentDocuments(): Promise<StortingetDocument[]> {
   try {
     // Fetch recent cases/documents from Stortinget API (returns XML)
-    const response = await fetch(`${STORTINGET_API_BASE}/saker`);
+    // Use AbortController for timeout (30 seconds)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    
+    const response = await fetch(`${STORTINGET_API_BASE}/saker`, {
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`Stortinget API error: ${response.status}`);
@@ -132,9 +140,16 @@ export async function fetchRecentDocuments(): Promise<StortingetDocument[]> {
 
         if (sakId) {
           try {
+            // Use AbortController for timeout (30 seconds)
+            const detailController = new AbortController();
+            const detailTimeoutId = setTimeout(() => detailController.abort(), 30000);
+            
             const sakDetailResponse = await fetch(`${STORTINGET_API_BASE}/sak/${sakId}`, {
+              signal: detailController.signal,
               next: { revalidate: 300 }, // Cache for 5 minutes
             });
+            
+            clearTimeout(detailTimeoutId);
             
             if (sakDetailResponse.ok) {
               const sakDetailXml = await sakDetailResponse.text();
@@ -237,8 +252,12 @@ export async function fetchRecentDocuments(): Promise<StortingetDocument[]> {
     );
 
     return recentDocuments;
-  } catch (error) {
-    console.error("Error fetching Stortinget documents:", error);
+  } catch (error: any) {
+    if (error.name === 'AbortError' || error.code === 'UND_ERR_CONNECT_TIMEOUT') {
+      console.error("Timeout connecting to Stortinget API. The API may be slow or unavailable.");
+    } else {
+      console.error("Error fetching Stortinget documents:", error);
+    }
     // Return empty array on error to allow graceful degradation
     return [];
   }

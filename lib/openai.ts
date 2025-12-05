@@ -125,7 +125,7 @@ URL: ${doc.url}
       ],
       response_format: { type: "json_object" },
       temperature: 0.7,
-      max_tokens: 3000, // Increased to handle longer responses
+      max_tokens: 4000, // Increased to handle longer responses and prevent truncation
     });
 
         const content = completion.choices[0]?.message?.content;
@@ -150,13 +150,66 @@ URL: ${doc.url}
           console.error("Content length:", content.length);
           // Try to fix common JSON issues
           try {
-            // Remove trailing commas
-            let fixedContent = content.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
-            // Try to extract just the JSON object if there's extra text
+            let fixedContent = content.trim();
+            
+            // Extract JSON object if wrapped in markdown or extra text
             const jsonObjectMatch = fixedContent.match(/\{[\s\S]*\}/);
             if (jsonObjectMatch) {
               fixedContent = jsonObjectMatch[0];
             }
+            
+            // Fix unescaped newlines in string values
+            // Walk through the string and escape newlines that are inside string values
+            let inString = false;
+            let escapeNext = false;
+            let result = '';
+            for (let i = 0; i < fixedContent.length; i++) {
+              const char = fixedContent[i];
+              const nextChar = fixedContent[i + 1];
+              
+              if (escapeNext) {
+                result += char;
+                escapeNext = false;
+                continue;
+              }
+              
+              if (char === '\\') {
+                result += char;
+                escapeNext = true;
+                continue;
+              }
+              
+              if (char === '"') {
+                // Toggle string state (escaped quotes are already handled by escapeNext)
+                inString = !inString;
+                result += char;
+                continue;
+              }
+              
+              if (inString) {
+                // Inside a string - escape newlines and carriage returns
+                if (char === '\n') {
+                  result += '\\n';
+                } else if (char === '\r') {
+                  result += '\\r';
+                  // Skip \n if it follows \r
+                  if (nextChar === '\n') {
+                    i++;
+                  }
+                } else if (char === '\t') {
+                  result += '\\t';
+                } else {
+                  result += char;
+                }
+              } else {
+                result += char;
+              }
+            }
+            fixedContent = result;
+            
+            // Remove trailing commas
+            fixedContent = fixedContent.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
+            
             parsed = JSON.parse(fixedContent);
           } catch (retryError) {
             console.error("Retry parse also failed:", retryError);
