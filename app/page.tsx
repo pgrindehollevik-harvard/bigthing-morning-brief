@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from "react";
 import { DigestResponse, DigestItem } from "@/types";
 import { getPartyColors } from "@/lib/partyColors";
 import ChatWindow from "./components/ChatWindow";
-import { translateCaseContent } from "@/lib/translate";
 
 // Translation keys
 const translations = {
@@ -62,18 +61,22 @@ export default function Home() {
   useEffect(() => {
     if (digest && digest.items.length > 0) {
       if (language === "en") {
-        // Translate all items
-        Promise.all(
-          digest.items.map(item => 
-            translateCaseContent(item, "en").then(translated => ({
-              ...item,
-              title: translated.title,
-              summary: translated.summary,
-              whyItMatters: translated.whyItMatters,
-              tema: translated.tema,
-            }))
-          )
-        ).then(setTranslatedItems);
+        // Call translation API
+        fetch("/api/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: digest.items,
+            language: "en",
+          }),
+        })
+          .then(res => res.json())
+          .then(data => setTranslatedItems(data.items || []))
+          .catch(error => {
+            console.error("Translation error:", error);
+            // Fallback to original items if translation fails
+            setTranslatedItems(digest.items);
+          });
       } else {
         // Use original items for Norwegian
         setTranslatedItems(digest.items);
