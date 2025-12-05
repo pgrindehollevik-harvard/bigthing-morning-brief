@@ -4,6 +4,22 @@
 // 2. SerpAPI (https://serpapi.com) - Google search results
 // 3. Google Custom Search API - Official Google API
 
+// Norwegian news domains to prioritize
+const NORWEGIAN_NEWS_DOMAINS = [
+  'nrk.no', 'aftenposten.no', 'vg.no', 'dagbladet.no', 'tv2.no',
+  'dn.no', 'e24.no', 'klassekampen.no', 'klassekampen.no',
+  'aftenbladet.no', 'adressa.no', 'stavangeraftenblad.no',
+  'bt.no', 'ba.no', 'fvn.no', 'haugesundsavis.no',
+  'stortinget.no', 'regjeringen.no', 'regjeringen.no'
+];
+
+// Check if URL is from a Norwegian source
+function isNorwegianSource(url: string): boolean {
+  if (!url) return false;
+  const urlLower = url.toLowerCase();
+  return NORWEGIAN_NEWS_DOMAINS.some(domain => urlLower.includes(domain));
+}
+
 export async function searchWeb(query: string, maxResults: number = 5): Promise<string> {
   // Try Tavily first (if API key is set)
   const tavilyKey = process.env.TAVILY_API_KEY;
@@ -11,9 +27,10 @@ export async function searchWeb(query: string, maxResults: number = 5): Promise<
   
   if (tavilyKey) {
     try {
-      // Add current year to query to prioritize recent results
+      // Enhance query to prioritize Norwegian sources
       const currentYear = new Date().getFullYear();
-      const enhancedQuery = `${query} ${currentYear} nylig`;
+      // Add Norwegian keywords and bias towards Norwegian sources
+      const enhancedQuery = `${query} Norge norsk ${currentYear} nylig`;
       
       console.log('Calling Tavily API with query:', enhancedQuery);
       const response = await fetch('https://api.tavily.com/search', {
@@ -25,7 +42,7 @@ export async function searchWeb(query: string, maxResults: number = 5): Promise<
           api_key: tavilyKey,
           query: enhancedQuery,
           search_depth: "advanced", // Use advanced for better recency
-          max_results: maxResults,
+          max_results: maxResults * 2, // Fetch more to filter for Norwegian sources
           include_answer: true,
           include_raw_content: false,
           topic: "news", // Specify news topic for better recency
@@ -46,8 +63,8 @@ export async function searchWeb(query: string, maxResults: number = 5): Promise<
       console.log('Tavily results count:', data.results?.length || 0);
       
       if (data.results && data.results.length > 0) {
-        // Filter and sort results by recency (if published_date is available)
-        const sortedResults = data.results
+        // Filter and prioritize Norwegian sources, then sort by recency
+        const processedResults = data.results
           .map((result: any) => {
             // Try to extract date from published_date or content
             let date: Date | null = null;
@@ -73,18 +90,46 @@ export async function searchWeb(query: string, maxResults: number = 5): Promise<
                 }
               }
             }
-            return { ...result, parsedDate: date };
-          })
-          .sort((a: any, b: any) => {
-            // Sort by date (most recent first), or by relevance if no date
-            if (a.parsedDate && b.parsedDate) {
-              return b.parsedDate.getTime() - a.parsedDate.getTime();
-            }
-            if (a.parsedDate) return -1;
-            if (b.parsedDate) return 1;
-            return 0; // Keep original order if no dates
-          })
-          .slice(0, maxResults); // Take top results
+            
+            // Check if result is from Norwegian source
+            const isNorwegian = isNorwegianSource(result.url || '');
+            
+            return { 
+              ...result, 
+              parsedDate: date,
+              isNorwegian,
+              priority: isNorwegian ? 1 : 0 // Norwegian sources get priority
+            };
+          });
+        
+        // Separate Norwegian and foreign sources
+        const norwegianResults = processedResults.filter(r => r.isNorwegian);
+        const foreignResults = processedResults.filter(r => !r.isNorwegian);
+        
+        // Sort each group by date (most recent first)
+        const sortByDate = (a: any, b: any) => {
+          if (a.parsedDate && b.parsedDate) {
+            return b.parsedDate.getTime() - a.parsedDate.getTime();
+          }
+          if (a.parsedDate) return -1;
+          if (b.parsedDate) return 1;
+          return 0;
+        };
+        
+        norwegianResults.sort(sortByDate);
+        foreignResults.sort(sortByDate);
+        
+        // Prioritize Norwegian sources: take up to maxResults from Norwegian, 
+        // then fill remaining slots with foreign if needed (but prefer Norwegian)
+        const maxNorwegian = Math.min(norwegianResults.length, maxResults);
+        const maxForeign = Math.max(0, maxResults - maxNorwegian);
+        
+        const sortedResults = [
+          ...norwegianResults.slice(0, maxNorwegian),
+          ...foreignResults.slice(0, maxForeign)
+        ];
+        
+        console.log(`Filtered results: ${norwegianResults.length} Norwegian, ${foreignResults.length} foreign. Showing ${sortedResults.length} total.`);
         
         let resultText = '';
         

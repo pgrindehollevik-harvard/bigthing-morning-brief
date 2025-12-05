@@ -16,7 +16,7 @@ interface ChatWindowProps {
   onRemoveCase: (index: number) => void;
 }
 
-// Generate suggested questions based on cases
+// Generate intelligent, context-aware suggested questions
 function generateSuggestedQuestions(cases: DigestItem[]): string[] {
   if (cases.length === 0) {
     return [
@@ -29,22 +29,84 @@ function generateSuggestedQuestions(cases: DigestItem[]): string[] {
   const questions: string[] = [];
   
   if (cases.length === 1) {
-    const caseTitle = cases[0].title.toLowerCase();
+    const caseItem = cases[0];
+    const title = caseItem.title;
+    
+    // Extract key terms from title (remove common prefixes)
+    const cleanTitle = title
+      .replace(/^(Representantforslag|Proposisjon|Melding|Innstilling)\s+(om|fra|til)\s+/i, "")
+      .substring(0, 50);
+    
+    // Get context from the case
+    const tema = caseItem.tema || "";
+    const sourceType = caseItem.source?.type;
+    const department = caseItem.source?.department;
+    const representatives = caseItem.source?.representatives || [];
+    
+    // Generate context-aware questions
+    if (sourceType === "regjering" && department) {
+      questions.push(
+        `Hva er ${department}s forslag i ${cleanTitle}?`,
+        `Hva er regjeringens begrunnelse for ${cleanTitle}?`,
+        `Hvilke konsekvenser vil ${cleanTitle} ha for norske borgere?`
+      );
+    } else if (representatives.length > 0) {
+      const partyNames = [...new Set(representatives.map(r => r.party))].join(" og ");
+      questions.push(
+        `Hvorfor har ${partyNames} fremmet ${cleanTitle}?`,
+        `Hva er de politiske implikasjonene av ${cleanTitle}?`,
+        `Hvilke interesser representerer ${cleanTitle}?`
+      );
+    }
+    
+    // Add tema-specific questions
+    if (tema) {
+      questions.push(
+        `Hva betyr ${cleanTitle} for ${tema}?`,
+        `Hvordan påvirker ${cleanTitle} norsk ${tema}?`
+      );
+    }
+    
+    // Add general policy-focused questions
     questions.push(
-      `Hva er de mest relevante nyhetssakene om ${cases[0].title.substring(0, 40)}?`,
-      `Forklar ${cases[0].title.substring(0, 40)} i detalj`,
-      `Hva er implikasjonene av ${cases[0].title.substring(0, 30)}?`
+      `Hva er hovedpunktene i ${cleanTitle}?`,
+      `Hva er status og neste steg for ${cleanTitle}?`,
+      `Finn norske nyheter om ${cleanTitle}`
     );
+    
+    // Remove duplicates and limit length
+    const uniqueQuestions = Array.from(new Set(questions))
+      .filter(q => q.length < 100)
+      .slice(0, 4);
+    
+    return uniqueQuestions;
   } else {
+    // Multiple cases - focus on connections and patterns
+    const temas = [...new Set(cases.map(c => c.tema).filter(Boolean))];
+    const parties = new Set<string>();
+    cases.forEach(c => {
+      c.source?.representatives?.forEach(r => parties.add(r.party));
+    });
+    const partyList = Array.from(parties).slice(0, 3).join(", ");
+    
     questions.push(
       "Hva er sammenhengen mellom disse sakene?",
-      "Finn nyheter om disse sakene",
-      "Hva er de viktigste implikasjonene?",
-      "Hvilke partier er involvert i disse sakene?"
+      "Hvilke politiske mønstre ser vi i disse sakene?",
+      "Hva er de viktigste implikasjonene av disse sakene sammen?"
     );
+    
+    if (partyList) {
+      questions.push(`Hvilke partier driver disse sakene frem?`);
+    }
+    
+    if (temas.length > 0) {
+      questions.push(`Hva er felles temaer i disse sakene?`);
+    }
+    
+    questions.push("Finn norske nyheter om disse sakene");
+    
+    return questions.slice(0, 4);
   }
-
-  return questions.slice(0, 3);
 }
 
 export default function ChatWindow({
