@@ -58,8 +58,13 @@ export default function Home() {
   const t = translations[language];
   
   // Translate case content when language changes
+  // TRANSLATION TEMPORARILY DISABLED
   useEffect(() => {
     if (digest && digest.items.length > 0) {
+      // Always use original items (translation disabled)
+      setTranslatedItems(digest.items);
+      
+      /* Translation disabled - uncomment to re-enable
       if (language === "en") {
         // Call translation API
         fetch("/api/translate", {
@@ -81,6 +86,7 @@ export default function Home() {
         // Use original items for Norwegian
         setTranslatedItems(digest.items);
       }
+      */
     }
   }, [digest, language]);
   
